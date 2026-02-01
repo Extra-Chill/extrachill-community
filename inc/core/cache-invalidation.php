@@ -109,6 +109,9 @@ function extrachill_clear_user_points_cache($user_ids) {
         delete_transient('user_topic_count_' . $user_id);
         delete_transient('user_reply_count_' . $user_id);
         delete_transient('user_points_' . $user_id);
+        // Also clear accurate count transients
+        delete_transient('ec_user_reply_count_' . $user_id);
+        delete_transient('ec_user_topic_count_' . $user_id);
     }
 
     extrachill_recalculate_user_points($user_ids);
