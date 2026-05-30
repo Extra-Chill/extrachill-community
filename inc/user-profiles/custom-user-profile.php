@@ -86,15 +86,19 @@ function display_music_fan_details() {
 			<?php endif; ?>
 
 			<?php
-			// Nudge the owner to convert their free-text concert memories into
-			// structured tracked shows on My Shows.
-			if ( $is_own && $top_concerts && function_exists( 'ec_community_my_shows_url' ) ) :
+			// These are legacy free-text notes from before My Shows existed.
+			// We deliberately do NOT promise to "convert" them: the events
+			// catalog is a forward-looking calendar with almost no historic /
+			// out-of-market shows, so searching for these past memories mostly
+			// finds nothing. Instead, invite the owner to start tracking shows
+			// going forward via My Shows — the path that actually works today.
+			if ( $is_own && function_exists( 'ec_community_my_shows_url' ) ) :
 				$my_shows_url = ec_community_my_shows_url( (int) $user_id );
 				if ( $my_shows_url ) :
 					?>
 					<p class="ec-music-fan-nudge">
-						<em><?php esc_html_e( 'These are your old free-text notes.', 'extra-chill-community' ); ?></em>
-						<a href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Turn them into your real concert history →', 'extra-chill-community' ); ?></a>
+						<em><?php esc_html_e( 'These are your personal notes.', 'extra-chill-community' ); ?></em>
+						<a href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start tracking shows you attend →', 'extra-chill-community' ); ?></a>
 					</p>
 					<?php
 				endif;
