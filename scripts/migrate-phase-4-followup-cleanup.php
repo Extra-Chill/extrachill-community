@@ -19,10 +19,13 @@
  * This is the follow-up to the merged Phase 4 migration (#70). The first pass
  * missed three things found in a deeper platform-wide sweep:
  *
- *   1. GATHER 14090 "Hello from Sarai Chinwag" INTO The Lab (13548). It's the
- *      first post via Data Machine bearer token / agentic auth going live —
- *      build-in-public × AI × platform. (The original #70 migration merged
- *      without this entry; this re-adds it.)
+ *   1. GATHER Lab-material INTO The Lab (13548):
+ *        - 14090 "Hello from Sarai Chinwag" — first post via DM bearer token /
+ *          agentic auth going live (the #70 migration merged without it).
+ *        - 14001 "Real Estate Web Player vs Spotify" — open-web feature request
+ *          to chubes ("music can live outside of the streaming platforms...
+ *          can you make something like this for Extra Chill?"). Textbook Lab
+ *          soul; was sitting in Artist Corner (14120).
  *
  *   2. RETIRE the dead "Shakedown Street" marketplace forum (120, draft) — an
  *      abandoned buy/sell idea that never launched. Its 2 stale 2024 topics
@@ -91,6 +94,7 @@ $shakedown_id      = 120;   // Shakedown Street (dead marketplace, draft).
 $gather_into_lab = array(
 	14090 => 'Hello from Sarai Chinwag — agentic auth / build-in-public (from The Back Bar 81)',
 	2342  => 'Moving to Austin & the Evolution of Extra Chill — founder narrative (salvaged from Team 547)',
+	14001 => 'Real Estate Web Player vs Spotify — open-web feature request to chubes (from Artist Corner 14120)',
 );
 
 // Shakedown Street topics to preserve in The Back Bar before trashing 120.
