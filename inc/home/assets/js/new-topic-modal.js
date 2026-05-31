@@ -1,7 +1,7 @@
 /**
  * New Topic Modal
  *
- * Handles modal open/close, TinyMCE reinitialization, and accessibility.
+ * Handles modal open/close, editor reinitialization, and accessibility.
  */
 ( function () {
 	'use strict';
