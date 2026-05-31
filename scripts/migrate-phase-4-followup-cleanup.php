@@ -30,6 +30,16 @@
  *      the empty draft forum is trashed. (Slipped past #63 because it was
  *      already `draft`, not `publish`.)
  *
+ *   2b. MOVE 3 leaked artist self-introductions out of Music Discussion (1983)
+ *      into Artist Corner (14120): 5975 (A. O. Wilder), 6767 (Tanager), 11108
+ *      (Rainbow Vixen). They escaped the #63 Artist Corner curation. Per the
+ *      #63 ruling, `<Artist> – <City> (<Genre>)` self-intros / own-release
+ *      drops belong in Artist Corner; album reviews / news / established-act
+ *      talk stay in Music Discussion. Verified by body that these are genuine
+ *      self-intros. This is consistency enforcement, not a new structure — the
+ *      epic (#53) deliberately keeps Music Discussion a mixed artist+fan
+ *      melting pot; only self-identity intros graduate to Artist Corner.
+ *
  *   3. SALVAGE 2342 "Moving to Austin & the Evolution of Extra Chill" out of
  *      the dead (hidden) Extra Chill Team forum (547) into The Lab (13548). It
  *      is a ~5.8k-char founder/platform-evolution narrative with one clean
@@ -72,6 +82,8 @@ if ( $dry_run ) {
  * ------------------------------------------------------------------------- */
 $the_lab_forum_id  = 13548; // The Lab.
 $back_bar_forum_id = 81;    // The Back Bar.
+$artist_corner_id  = 14120; // Artist Corner.
+$music_disc_id     = 1983;  // Music Discussion (source of leaked self-intros).
 $team_forum_id     = 547;   // Extra Chill Team (hidden, dead — left in place).
 $shakedown_id      = 120;   // Shakedown Street (dead marketplace, draft).
 
@@ -85,6 +97,17 @@ $gather_into_lab = array(
 $shakedown_topics = array(
 	828 => 'Tye Dye (marketplace offer)',
 	351 => 'Selling my soul ($3.50 joke)',
+);
+
+// Artist self-introductions that leaked past the #63 Artist Corner curation
+// and are still sitting in Music Discussion. Per the #63 ruling — `<Artist> –
+// <City> (<Genre>)` self-intros and own-release drops belong in Artist Corner;
+// album reviews / news / established-act talk stay in Music Discussion — these
+// are genuine self-intros (verified by body) and should be in Artist Corner.
+$leaked_self_intros = array(
+	5975  => 'A. O. Wilder – New York, NY (Country Rock) — self-intro',
+	6767  => 'Tanager – Ypsilanti, MI (Indie Rock) — self-intro',
+	11108 => 'Rainbow Vixen Ladson SC (Rap/Hip-Hop/R&B) — self-intro',
 );
 
 /** ---------------------------------------------------------------------------
@@ -177,6 +200,15 @@ foreach ( $shakedown_topics as $topic_id => $label ) {
 }
 
 /** ===========================================================================
+ * STEP 2b — Move leaked artist self-intros into Artist Corner (enforce #63).
+ * ======================================================================== */
+$log( "\n== Step 2b: move leaked self-intros into Artist Corner ==" );
+foreach ( $leaked_self_intros as $topic_id => $label ) {
+	$log( "  {$topic_id}: {$label}" );
+	$move_topic( $topic_id, $artist_corner_id );
+}
+
+/** ===========================================================================
  * STEP 3 — Trash the dead Shakedown Street marketplace forum (120).
  * ======================================================================== */
 $log( "\n== Step 3: retire Shakedown Street marketplace forum (120) ==" );
@@ -225,6 +257,8 @@ $affected = array_unique(
 	array(
 		$the_lab_forum_id,
 		$back_bar_forum_id,
+		$artist_corner_id,
+		$music_disc_id,
 		$team_forum_id,
 		$shakedown_id,
 	)
