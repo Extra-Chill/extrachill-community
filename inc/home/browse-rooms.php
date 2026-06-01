@@ -13,12 +13,19 @@
  * forums; artist sub-forums are children (non-zero parent) and the staff forum
  * is `hidden`, so both are excluded.
  *
- * Note: bbPress registers `hidden` and `private` as forum post statuses, so a
- * forum's visibility lives in its post_status. We restrict the chip query to
- * the bbPress public status only (bbp_get_public_status_id()) and additionally
- * subtract any IDs flagged in the `_bbp_hidden_forums` / `_bbp_private_forums`
- * options as a belt-and-suspenders guard. This filters out any hidden/private
- * forum generically rather than hardcoding the current staff forum ID.
+ * Visibility note (the actual bug): bbPress registers `hidden` and `private`
+ * as forum post statuses, and hooks `pre_get_posts`
+ * (bbp_pre_get_posts_normalize_forum_visibility) to OVERWRITE the queried
+ * `post_status` with [public, hidden, private] for any viewer who can
+ * `read_hidden_forums` / `read_private_forums`. So a `post_status => publish`
+ * query silently returns hidden/private forums for logged-in admins/team —
+ * which is exactly how the hidden staff forum leaked onto the homepage chips.
+ *
+ * Passing the public status does not help (bbPress overwrites it post-hook).
+ * The robust, viewer-independent fix is to filter the returned posts down to
+ * the genuine public status afterwards, so hidden/private forums never appear
+ * regardless of who is viewing. We also drop any IDs bbPress tracks in the
+ * `_bbp_hidden_forums` / `_bbp_private_forums` options as a secondary guard.
  *
  * Loaded via the extrachill_community_home_after_feed action hook
  * (registered in inc/home/actions.php).
@@ -39,16 +46,13 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 	 * @return WP_Post[]
 	 */
 	function extrachill_community_get_room_chips() {
-		// A forum's visibility lives in its post_status: bbPress registers
-		// `hidden` and `private` as forum statuses, so restricting to the public
-		// status is what actually excludes the hidden staff forum. (A literal
-		// `publish` mostly works but the canonical public id is the safe value.)
 		$public_status = function_exists( 'bbp_get_public_status_id' )
 			? bbp_get_public_status_id()
 			: 'publish';
 
-		// Belt-and-suspenders: also subtract any forum IDs bbPress flags as
-		// hidden/private in its options, in case status and option ever diverge.
+		// Secondary guard: forum IDs bbPress flags as hidden/private in its
+		// options. (Not sufficient alone — a forum can be hidden purely by its
+		// post_status without appearing in these options — but cheap to apply.)
 		$exclude = array();
 
 		if ( function_exists( 'bbp_get_hidden_forum_ids' ) ) {
@@ -81,10 +85,25 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 
 		$rooms = get_posts( $query_args );
 
+		// Primary guard: bbPress overwrites the queried post_status with
+		// [public, hidden, private] via pre_get_posts for viewers who can read
+		// hidden/private forums, so the query above can still return hidden or
+		// private forums to logged-in admins/team. Filter the result set down to
+		// the genuine public status so non-public forums never render as chips,
+		// regardless of the current viewer's capabilities.
+		$rooms = array_values(
+			array_filter(
+				$rooms,
+				static function ( $room ) use ( $public_status ) {
+					return $public_status === get_post_status( $room );
+				}
+			)
+		);
+
 		/**
 		 * Filter the room forums shown as homepage chips.
 		 *
-		 * @param WP_Post[] $rooms Published top-level forum posts.
+		 * @param WP_Post[] $rooms Public top-level forum posts.
 		 */
 		return apply_filters( 'extrachill_community_room_chips', $rooms );
 	}
