@@ -7,11 +7,18 @@
  * chips. For a low-volume community a directory table advertises emptiness;
  * a chip row keeps browsing available without leading with it.
  *
- * Rooms are pulled DYNAMICALLY from published top-level forums — no hardcoded
- * forum IDs. Published top-level forums are exactly the consolidated public
- * room set (Music Discussion, Live Shows & Scenes, Artist Corner, The Lab,
- * The Back Bar); the staff forum is `hidden` status and artist sub-forums are
- * children (non-zero parent), so both are naturally excluded.
+ * Rooms are pulled DYNAMICALLY from public top-level forums — no hardcoded
+ * forum IDs. The consolidated public room set (Music Discussion, Live Shows &
+ * Scenes, Artist Corner, The Lab, The Back Bar) are the published, top-level
+ * forums; artist sub-forums are children (non-zero parent) and the staff forum
+ * is `hidden`, so both are excluded.
+ *
+ * Note: bbPress registers `hidden` and `private` as forum post statuses, and a
+ * `post_status => publish` query does NOT exclude them — bbPress instead tracks
+ * non-public forums in the `_bbp_hidden_forums` / `_bbp_private_forums` options.
+ * We therefore exclude those IDs explicitly via bbp_get_hidden_forum_ids() and
+ * bbp_get_private_forum_ids() so any hidden/private forum is filtered out, not
+ * just the current staff forum.
  *
  * Loaded via the extrachill_community_home_after_feed action hook
  * (registered in inc/home/actions.php).
@@ -32,21 +39,41 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 	 * @return WP_Post[]
 	 */
 	function extrachill_community_get_room_chips() {
-		$rooms = get_posts(
-			array(
-				'post_type'              => bbp_get_forum_post_type(),
-				'post_status'            => 'publish',
-				'post_parent'            => 0,
-				'posts_per_page'         => -1,
-				'orderby'                => array(
-					'menu_order' => 'ASC',
-					'title'      => 'ASC',
-				),
-				'no_found_rows'          => true,
-				'update_post_term_cache' => false,
-				'update_post_meta_cache' => false,
-			)
+		// bbPress tracks non-public top-level forums in dedicated options rather
+		// than relying on post_status, so a publish-only query still returns
+		// hidden/private forums. Exclude them explicitly using bbPress's own
+		// visibility helpers so any hidden or private forum is filtered out.
+		$exclude = array();
+
+		if ( function_exists( 'bbp_get_hidden_forum_ids' ) ) {
+			$exclude = array_merge( $exclude, bbp_get_hidden_forum_ids() );
+		}
+
+		if ( function_exists( 'bbp_get_private_forum_ids' ) ) {
+			$exclude = array_merge( $exclude, bbp_get_private_forum_ids() );
+		}
+
+		$exclude = array_values( array_unique( array_map( 'absint', $exclude ) ) );
+
+		$query_args = array(
+			'post_type'              => bbp_get_forum_post_type(),
+			'post_status'            => 'publish',
+			'post_parent'            => 0,
+			'posts_per_page'         => -1,
+			'orderby'                => array(
+				'menu_order' => 'ASC',
+				'title'      => 'ASC',
+			),
+			'no_found_rows'          => true,
+			'update_post_term_cache' => false,
+			'update_post_meta_cache' => false,
 		);
+
+		if ( ! empty( $exclude ) ) {
+			$query_args['post__not_in'] = $exclude;
+		}
+
+		$rooms = get_posts( $query_args );
 
 		/**
 		 * Filter the room forums shown as homepage chips.
