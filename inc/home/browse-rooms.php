@@ -83,23 +83,20 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 			$query_args['post__not_in'] = $exclude;
 		}
 
-		$rooms = get_posts( $query_args );
+		$found = get_posts( $query_args );
 
 		// Primary guard: bbPress overwrites the queried post_status with
 		// [public, hidden, private] via pre_get_posts for viewers who can read
 		// hidden/private forums, so the query above can still return hidden or
-		// private forums to logged-in admins/team. Filter the result set down to
-		// the genuine public status so non-public forums never render as chips,
-		// regardless of the current viewer's capabilities.
-		$rooms = array_values(
-			array_filter(
-				$rooms,
-				static function ( $room ) use ( $public_status ) {
-					$status = get_post_status( $room );
-					return $public_status === $status;
-				}
-			)
-		);
+		// private forums to logged-in admins/team. Keep only the genuine public
+		// status so non-public forums never render as chips, regardless of the
+		// current viewer's capabilities.
+		$rooms = array();
+		foreach ( $found as $room ) {
+			if ( $public_status === get_post_status( $room ) ) {
+				$rooms[] = $room;
+			}
+		}
 
 		/**
 		 * Filter the room forums shown as homepage chips.
