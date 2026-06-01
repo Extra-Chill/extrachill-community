@@ -46,9 +46,10 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 	 * @return WP_Post[]
 	 */
 	function extrachill_community_get_room_chips() {
-		$public_status = function_exists( 'bbp_get_public_status_id' )
-			? bbp_get_public_status_id()
-			: 'publish';
+		$public_status = 'publish';
+		if ( function_exists( 'bbp_get_public_status_id' ) ) {
+			$public_status = bbp_get_public_status_id();
+		}
 
 		// Secondary guard: forum IDs bbPress flags as hidden/private in its
 		// options. (Not sufficient alone — a forum can be hidden purely by its
@@ -91,12 +92,13 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 		// private forums to logged-in admins/team. Keep only the genuine public
 		// status so non-public forums never render as chips, regardless of the
 		// current viewer's capabilities.
-		$rooms = array();
-		foreach ( $found as $room ) {
-			if ( $public_status === get_post_status( $room ) ) {
-				$rooms[] = $room;
+		$rooms = array_filter(
+			$found,
+			static function ( $room ) use ( $public_status ) {
+				return $public_status === get_post_status( $room );
 			}
-		}
+		);
+		$rooms = array_values( $rooms );
 
 		/**
 		 * Filter the room forums shown as homepage chips.
