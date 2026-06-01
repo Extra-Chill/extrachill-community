@@ -13,12 +13,12 @@
  * forums; artist sub-forums are children (non-zero parent) and the staff forum
  * is `hidden`, so both are excluded.
  *
- * Note: bbPress registers `hidden` and `private` as forum post statuses, and a
- * `post_status => publish` query does NOT exclude them — bbPress instead tracks
- * non-public forums in the `_bbp_hidden_forums` / `_bbp_private_forums` options.
- * We therefore exclude those IDs explicitly via bbp_get_hidden_forum_ids() and
- * bbp_get_private_forum_ids() so any hidden/private forum is filtered out, not
- * just the current staff forum.
+ * Note: bbPress registers `hidden` and `private` as forum post statuses, so a
+ * forum's visibility lives in its post_status. We restrict the chip query to
+ * the bbPress public status only (bbp_get_public_status_id()) and additionally
+ * subtract any IDs flagged in the `_bbp_hidden_forums` / `_bbp_private_forums`
+ * options as a belt-and-suspenders guard. This filters out any hidden/private
+ * forum generically rather than hardcoding the current staff forum ID.
  *
  * Loaded via the extrachill_community_home_after_feed action hook
  * (registered in inc/home/actions.php).
@@ -39,10 +39,16 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 	 * @return WP_Post[]
 	 */
 	function extrachill_community_get_room_chips() {
-		// bbPress tracks non-public top-level forums in dedicated options rather
-		// than relying on post_status, so a publish-only query still returns
-		// hidden/private forums. Exclude them explicitly using bbPress's own
-		// visibility helpers so any hidden or private forum is filtered out.
+		// A forum's visibility lives in its post_status: bbPress registers
+		// `hidden` and `private` as forum statuses, so restricting to the public
+		// status is what actually excludes the hidden staff forum. (A literal
+		// `publish` mostly works but the canonical public id is the safe value.)
+		$public_status = function_exists( 'bbp_get_public_status_id' )
+			? bbp_get_public_status_id()
+			: 'publish';
+
+		// Belt-and-suspenders: also subtract any forum IDs bbPress flags as
+		// hidden/private in its options, in case status and option ever diverge.
 		$exclude = array();
 
 		if ( function_exists( 'bbp_get_hidden_forum_ids' ) ) {
@@ -57,7 +63,7 @@ if ( ! function_exists( 'extrachill_community_get_room_chips' ) ) {
 
 		$query_args = array(
 			'post_type'              => bbp_get_forum_post_type(),
-			'post_status'            => 'publish',
+			'post_status'            => $public_status,
 			'post_parent'            => 0,
 			'posts_per_page'         => -1,
 			'orderby'                => array(
