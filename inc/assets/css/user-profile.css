@@ -172,7 +172,7 @@
 }
 
 .bbp-user-profile .bbp-user-last-seen.is-online {
-	color: var(--accent);
+	color: var(--success-color);
 	font-weight: 600;
 }
 
@@ -183,8 +183,19 @@
 	height: 0.5rem;
 	margin-right: 0.4rem;
 	border-radius: 50%;
-	background-color: #2ecc71;
+	background-color: var(--success-color);
 	vertical-align: middle;
+	animation: bbp-last-seen-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bbp-last-seen-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
 }
 
 /* User Actions Area */
