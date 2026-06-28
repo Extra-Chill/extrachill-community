@@ -165,6 +165,28 @@
 	color: var(--muted-text);
 }
 
+.bbp-user-profile .bbp-user-last-seen {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+}
+
+.bbp-user-profile .bbp-user-last-seen.is-online {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.bbp-user-profile .bbp-user-last-seen.is-online::before {
+	content: "";
+	display: inline-block;
+	width: 0.5rem;
+	height: 0.5rem;
+	margin-right: 0.4rem;
+	border-radius: 50%;
+	background-color: #2ecc71;
+	vertical-align: middle;
+}
+
 /* User Actions Area */
 .bbp-user-profile .bbp-user-actions-area {
 	position: absolute;
