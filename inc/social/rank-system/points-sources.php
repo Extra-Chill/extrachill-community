@@ -72,13 +72,19 @@ add_filter( 'ec_points_sources', 'extrachill_community_forum_points_sources', 10
 /**
  * Contribute dated forum activity events to the contribution seam.
  *
- * Aggregates the user's published topics + replies by post_date (site-local
- * calendar day) on the community blog. Upvotes are excluded — they have no
- * per-day timestamp trail (see extrachill-community#147).
+ * SELECTs the UTC-authoritative `post_date_gmt` column for the user's published
+ * topics + replies, then delegates day computation to the shared
+ * ec_bucket_utc_events_by_local_day() helper in extrachill-users. Upvotes are
+ * excluded — they have no per-day timestamp trail (see
+ * extrachill-community#147).
  *
  * This contributor runs in the community blog context (community is active on
  * community.extrachill.com where bbPress content lives), so $wpdb->posts is the
  * community blog's posts table. No switch_to_blog needed.
+ *
+ * The helper lives in extrachill-users; if that plugin is not loaded, this
+ * contributor returns $events unchanged (graceful-guard pattern, consistent
+ * with the engine-call guards elsewhere).
  *
  * @param array  $events    Running event list.
  * @param int    $user_id   WordPress user ID.
@@ -86,6 +92,12 @@ add_filter( 'ec_points_sources', 'extrachill_community_forum_points_sources', 10
  * @return array
  */
 function extrachill_community_forum_contribution_events( $events, $user_id, $since_ymd ) {
+	// The shared day-bucketing helper lives in extrachill-users. Guard so the
+	// contributor no-ops gracefully if the engine is not loaded.
+	if ( ! function_exists( 'ec_bucket_utc_events_by_local_day' ) ) {
+		return $events;
+	}
+
 	global $wpdb;
 
 	$topic_type = bbp_get_topic_post_type();
@@ -94,47 +106,27 @@ function extrachill_community_forum_contribution_events( $events, $user_id, $sin
 	// bbPress post-type slugs are sanitize_key'd; safe for a direct IN list.
 	$types_csv = "'" . implode( "','", array_map( 'esc_sql', array( $topic_type, $reply_type ) ) ) . "'";
 
-	if ( '' !== $since_ymd ) {
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $types_csv is esc_sql'd from trusted bbPress post-type slugs.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DATE(post_date) AS d, COUNT(*) AS c
-				 FROM {$wpdb->posts}
-				 WHERE post_author = %d AND post_type IN ({$types_csv})
-				   AND post_status = 'publish' AND DATE(post_date) >= %s
-				 GROUP BY d",
-				$user_id,
-				$since_ymd
-			),
-			ARRAY_A
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	} else {
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $types_csv is esc_sql'd from trusted bbPress post-type slugs.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DATE(post_date) AS d, COUNT(*) AS c
-				 FROM {$wpdb->posts}
-				 WHERE post_author = %d AND post_type IN ({$types_csv})
-				   AND post_status = 'publish'
-				 GROUP BY d",
-				$user_id
-			),
-			ARRAY_A
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	// SELECT the UTC-authoritative column; day computation is centralized in
+	// ec_bucket_utc_events_by_local_day().
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $types_csv is esc_sql'd from trusted bbPress post-type slugs.
+	$utc_timestamps = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT post_date_gmt
+			 FROM {$wpdb->posts}
+			 WHERE post_author = %d AND post_type IN ({$types_csv})
+			   AND post_status = 'publish'",
+			$user_id
+		)
+	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+	if ( ! is_array( $utc_timestamps ) || empty( $utc_timestamps ) ) {
+		return $events;
 	}
 
-	if ( is_array( $rows ) ) {
-		foreach ( $rows as $row ) {
-			$events[] = array(
-				'date'  => (string) $row['d'],
-				'type'  => 'forum',
-				'count' => (int) $row['c'],
-			);
-		}
-	}
-
-	return $events;
+	return array_merge(
+		$events,
+		ec_bucket_utc_events_by_local_day( $utc_timestamps, 'forum', $since_ymd )
+	);
 }
 add_filter( 'ec_contribution_events', 'extrachill_community_forum_contribution_events', 10, 3 );
