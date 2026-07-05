@@ -457,3 +457,143 @@
 .ec-music-fan-details-card .ec-music-fan-nudge em {
 	opacity: 0.7;
 }
+
+/* ==================================================
+   Contribution Heatmap (GitHub-style activity calendar)
+   Pure CSS grid. Shade ramp uses the EC brand --accent
+   (green, #53940b) via color-mix over --card-background,
+   so it stays on-brand and respects the design system.
+   ================================================== */
+
+/* The heatmap is a full-width hero card: it renders via the
+   bbp_template_after_user_details hook, outside the 2-column flex grid.
+   Two-class selector beats the desktop half-width card rule. */
+.bbp-user-profile-card.ec-contribution-heatmap {
+	width: 100%;
+}
+
+@media (min-width: 768px) {
+	.bbp-user-profile-card.ec-contribution-heatmap {
+		margin-left: 0;
+		margin-right: 0;
+	}
+}
+
+.ec-contribution-heatmap > h3 {
+	margin-bottom: 0.5rem;
+}
+
+.ec-heatmap-summary {
+	margin: 0 0 0.75rem;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-heatmap-summary strong {
+	color: var(--text-color, currentColor);
+}
+
+/* Horizontal scroll on narrow screens so the 53-week grid never overflows
+   the profile column. */
+.ec-heatmap-scroll {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	padding-bottom: 0.25rem;
+}
+
+.ec-heatmap {
+	display: grid;
+	/* column 1 = weekday labels, columns 2..54 = the 53 week-columns. */
+	grid-template-columns: 2em repeat(53, var(--ec-heat-cell, 12px));
+	/* row 1 = month labels, rows 2..8 = Sun..Sat. */
+	grid-template-rows: 1.4em repeat(7, var(--ec-heat-cell, 12px));
+	gap: 3px;
+	width: max-content;
+	min-width: 100%;
+}
+
+.ec-heat-month {
+	font-size: 0.7rem;
+	color: var(--muted-text);
+	line-height: 1.4em;
+	white-space: nowrap;
+}
+
+.ec-heat-weekday {
+	font-size: 0.7rem;
+	color: var(--muted-text);
+	line-height: var(--ec-heat-cell, 12px);
+	text-align: right;
+	padding-right: 2px;
+}
+
+.ec-heat-cell {
+	width: var(--ec-heat-cell, 12px);
+	height: var(--ec-heat-cell, 12px);
+	border-radius: 2px;
+	display: block;
+	background-color: var(--border-color);
+}
+
+/* Intensity ramp. level-0 = empty; 1..4 = accent blended over card bg. */
+.ec-heat-cell.level-0 {
+	background-color: var(--border-color);
+}
+.ec-heat-cell.level-1 {
+	background-color: color-mix(in srgb, var(--accent) 30%, var(--card-background));
+}
+.ec-heat-cell.level-2 {
+	background-color: color-mix(in srgb, var(--accent) 55%, var(--card-background));
+}
+.ec-heat-cell.level-3 {
+	background-color: color-mix(in srgb, var(--accent) 78%, var(--card-background));
+}
+.ec-heat-cell.level-4 {
+	background-color: var(--accent);
+}
+
+/* Legend chips render inline (outside the grid). */
+.ec-heat-cell.ec-heat-cell-legend {
+	display: inline-block;
+	margin: 0 1px;
+	vertical-align: middle;
+}
+
+.ec-heatmap-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-heatmap-legend {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.ec-heat-legend-label {
+	font-size: 0.75rem;
+}
+
+/* Slightly smaller cells on mobile so the grid fits common viewports. */
+@media (max-width: 768px) {
+	.ec-heatmap {
+		--ec-heat-cell: 11px;
+	}
+}
+
+/* ------------------------------------------------------
+   Community Activity card: conservative slim.
+   The heatmap is now the temporal hero, so de-emphasize the
+   raw standalone counts (topics/replies) without removing them
+   or their navigational links.
+   ------------------------------------------------------ */
+.ec-activity-count {
+	color: var(--muted-text);
+	font-weight: 600;
+}

@@ -55,8 +55,8 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_city
 		<p class="bbp-user-join-date"><b>Joined:</b> <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($join_date))); ?></p>
 	<?php endif; ?>
 
-	<p class="bbp-user-topic-count"><b>Threads Started:</b> <?php echo (int) bbp_get_user_topic_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_topics_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Threads)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
-	<p class="bbp-user-reply-count"><b>Total Replies:</b> <?php echo (int) bbp_get_user_reply_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_replies_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Replies Created)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
+	<p class="bbp-user-topic-count"><b>Threads Started:</b> <span class="ec-activity-count"><?php echo (int) bbp_get_user_topic_count_raw( bbp_get_displayed_user_id() ); ?></span> <a href="<?php bbp_user_topics_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Threads)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
+	<p class="bbp-user-reply-count"><b>Total Replies:</b> <span class="ec-activity-count"><?php echo (int) bbp_get_user_reply_count_raw( bbp_get_displayed_user_id() ); ?></span> <a href="<?php bbp_user_replies_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Replies Created)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
 
 	<!-- Display Main Site Blog Post Count -->
 	<?php

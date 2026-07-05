@@ -24,9 +24,11 @@ if ( ! defined('ABSPATH') ) {
 /**
  * Render the displayed user's activity feed below their profile.
  *
- * Hooked to bbp_template_after_user_profile so it only renders on the main
- * profile tab (bbp_is_single_user_profile()), not on the topics/replies/edit
- * sub-tabs which already have their own bbPress loops.
+ * Hooked to bbp_template_after_user_details (priority 4) so it renders directly
+ * under the contribution heatmap (priority 3) — the chart shows the temporal
+ * pattern, this feed is its natural detail view (chart → recent items). The
+ * bbp_is_single_user_profile() guard keeps it to the main profile tab only,
+ * not the topics/replies/edit sub-tabs which have their own bbPress loops.
  *
  * @return void
  */
@@ -65,4 +67,4 @@ function extrachill_render_profile_activity_feed() {
 
 	echo '</div>';
 }
-add_action( 'bbp_template_after_user_profile', 'extrachill_render_profile_activity_feed' );
+add_action( 'bbp_template_after_user_details', 'extrachill_render_profile_activity_feed', 4 );
