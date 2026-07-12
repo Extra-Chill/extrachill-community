@@ -24,12 +24,14 @@ if ( ! defined('ABSPATH') ) {
 /**
  * Render the displayed user's activity feed below their profile.
  *
- * Hooked to bbp_template_after_user_details (priority 3) so it renders as the
- * natural detail view directly beneath the Contribution Activity heatmap
- * (priority 1) — the flow is chart → recent items. The bbp_is_single_user_profile()
- * guard keeps it on the main profile tab only, not on the topics/replies/edit
- * sub-tabs which already have their own bbPress loops. Full-width via the
- * existing .user-profile-activity-feed CSS rule.
+ * Hooked to bbp_template_after_user_profile so it renders as the very last
+ * element on the profile page — after the header, heatmap, concert history,
+ * and the About / Community Activity / Artists card grid. The feed is the
+ * long-tail detail view; all glanceable profile info stays above it. The
+ * bbp_is_single_user_profile() guard keeps it on the main profile tab only,
+ * not on the topics/replies/edit sub-tabs which already have their own
+ * bbPress loops. Full-width via the existing .user-profile-activity-feed
+ * CSS rule.
  *
  * @return void
  */
@@ -68,6 +70,6 @@ function extrachill_render_profile_activity_feed() {
 
 	echo '</div>';
 }
-// Priority 3 places the feed directly under the heatmap (priority 1) and above
-// Concert History (priority 5), all outside the 2-column card grid.
-add_action( 'bbp_template_after_user_details', 'extrachill_render_profile_activity_feed', 3 );
+// Fires after the entire profile body (bbpress/user-profile.php), making the
+// feed the final element on the page — quick info stays above the fold.
+add_action( 'bbp_template_after_user_profile', 'extrachill_render_profile_activity_feed' );

@@ -17,7 +17,7 @@
  * at priority 1, directly under the header card and ABOVE the 2-column
  * `.bbp-user-profile-cards-container` grid (same outside-the-grid placement
  * pattern as Concert History at priority 5). The Recent Activity feed
- * (priority 3) sits between them as the chart's detail view.
+ * renders at the very bottom of the profile via bbp_template_after_user_profile.
  *
  * Empty grid on a brand-new user is expected and rendered as-is — the "dead
  * chart" invites the owner to fill it in. If the contribution seam is not yet
@@ -252,6 +252,6 @@ function ec_community_display_contribution_heatmap() {
 }
 
 // Render directly under the header card, above everything else in the profile
-// body. Priority 1 keeps it the hero element; the Recent Activity feed
-// (priority 3) and Concert History (priority 5) follow it.
+// body. Priority 1 keeps it the hero element; Concert History (priority 5)
+// follows it, and the Recent Activity feed closes out the page.
 add_action( 'bbp_template_after_user_details', 'ec_community_display_contribution_heatmap', 1 );
