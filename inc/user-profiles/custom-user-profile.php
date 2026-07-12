@@ -49,10 +49,11 @@ function display_main_site_post_count_on_profile() {
  * profile owner has legacy top_concerts text, a nudge invites them to convert
  * it into structured tracked shows via My Shows.
  *
- * Rendered on `bbp_template_after_user_details` (priority 20) so it appears in
- * the profile body, below the Concert History card (priority 5). The previous
- * `bbp_init` hook fired during init and the echoed markup was discarded, so
- * this card never actually rendered — moving to the template hook fixes that.
+ * Rendered on `bbp_template_after_user_profile` (priority 20) so it appears
+ * below the profile card grid, under the Concert History card (priority 5).
+ * The original `bbp_init` hook fired during init and the echoed markup was
+ * discarded, so this card never actually rendered — hooking a template action
+ * fixes that.
  */
 function display_music_fan_details() {
 	$user_id = bbp_get_displayed_user_id();
@@ -105,9 +106,9 @@ function display_music_fan_details() {
 	<?php
 }
 
-// Render the legacy Music Fan Details card inside the profile body, below the
-// Concert History card (priority 5). Priority 20 keeps it last.
-add_action( 'bbp_template_after_user_details', 'display_music_fan_details', 20 );
+// Render below the profile card grid, after the Concert History card
+// (priority 5). Priority 20 keeps it last before the activity feed (99).
+add_action( 'bbp_template_after_user_profile', 'display_music_fan_details', 20 );
 
 // Load the function after bbPress is fully loaded
 add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );
