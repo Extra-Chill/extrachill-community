@@ -44,39 +44,12 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_scen
 </div>
 <?php endif; // End has_about_content ?>
 			<?php do_action( 'bbp_template_before_user_details_menu_items' ); ?>
-		<div class="bbp-user-profile-card">
-		<div class="user-profile-activity">
-	<h3><?php esc_html_e('Community Activity', 'extra-chill-community'); ?></h3>
-	<?php if ( bbp_get_user_last_posted() ) : ?>
-		<p class="bbp-user-last-activity"><b>Last Post:</b> <?php echo esc_html(bbp_get_time_since(bbp_get_user_last_posted(), false, true)); ?></p>
-	<?php endif; ?>
-	<?php $join_date = bbp_get_displayed_user_field('user_registered'); ?>
-	<?php if ( ! empty($join_date) ) : ?>
-		<p class="bbp-user-join-date"><b>Joined:</b> <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($join_date))); ?></p>
-	<?php endif; ?>
-
-	<p class="bbp-user-topic-count"><b>Threads Started:</b> <?php echo (int) bbp_get_user_topic_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_topics_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Threads)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
-	<p class="bbp-user-reply-count"><b>Total Replies:</b> <?php echo (int) bbp_get_user_reply_count_raw( bbp_get_displayed_user_id() ); ?> <a href="<?php bbp_user_replies_created_url(); ?>"><?php /* translators: %s: user display name */ printf(esc_html__("(%s's Replies Created)", 'extra-chill-community'), esc_html(bbp_get_displayed_user_field('display_name'))); ?></a></p>
-
-	<!-- Display Main Site Blog Post Count -->
-	<?php
-	// Properly display the main site blog post count and "View All" link on the profile
-	display_main_site_post_count_on_profile();
-	?>
-
-	<!-- Display Main Site Comments Count (hidden at zero — no noise) -->
-	<?php
-	$user_id       = bbp_get_displayed_user_id();
-	$comment_count = function_exists('get_user_main_site_comment_count') ? get_user_main_site_comment_count($user_id) : 0;
-
-	if ( $comment_count > 0 ) {
-		$comments_url = ec_get_site_url( 'community' ) . "/blog-comments?user_id={$user_id}";
-		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . (int) $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
-	}
-	?>
-	</div>
-	</div>
-					
+<?php
+// The former "Community Activity" card is gone: its unique data (join date,
+// thread/reply sub-page links, cross-site article + blog-comment counts) now
+// renders as the compact meta line in the profile hero — see
+// extrachill_display_profile_meta_line() in inc/user-profiles/custom-user-profile.php.
+?>
 <?php
 // Wrap the entire conditional artist section in a card
 // Check if the user is marked as an artist or professional

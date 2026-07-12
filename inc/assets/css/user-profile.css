@@ -126,6 +126,19 @@
 	width: 100%;
 }
 
+/* Hero meta line: join date + linked activity counts (replaces the old
+   Community Activity card). */
+.bbp-user-profile .bbp-user-meta-line {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+	width: 100%;
+}
+
+.bbp-user-profile .bbp-user-meta-sep {
+	opacity: 0.6;
+}
+
 .bbp-user-profile .bbp-user-last-seen {
 	font-size: var(--font-size-sm);
 	color: var(--muted-text);

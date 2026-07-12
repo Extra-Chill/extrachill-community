@@ -38,6 +38,14 @@ defined( 'ABSPATH' ) || exit;
 			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
 		</p>
 		<?php
+		// Compact meta line: join date + linked activity counts (threads,
+		// replies, articles, blog comments). Replaces the old Community
+		// Activity card — see extrachill_display_profile_meta_line().
+		if ( function_exists( 'extrachill_display_profile_meta_line' ) ) {
+			extrachill_display_profile_meta_line();
+		}
+		?>
+		<?php
 		// "Last seen" status. Composes the ec_get_last_seen() primitive from
 		// extrachill-users (Network: true), which formats the centralized
 		// last_active timestamp into "Online now" / "Last seen X ago". Guarded
