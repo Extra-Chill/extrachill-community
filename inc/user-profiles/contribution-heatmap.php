@@ -14,8 +14,7 @@
  * onto a CSS grid.
  *
  * Placement: full-width card rendered via `bbp_template_after_user_profile`
- * at priority 1, BELOW the 2-column `.bbp-user-profile-cards-container` grid
- * (About / Community Activity / Artists) that sits under the header card.
+ * at priority 1, below the About card that follows the profile hero.
  * Concert History (priority 5) and the Recent Activity feed (priority 99)
  * follow it on the same hook.
  *
