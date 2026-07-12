@@ -110,75 +110,12 @@ function extrachill_display_profile_meta_line() {
 	echo '<p class="bbp-user-meta-line">' . implode( '<span class="bbp-user-meta-sep" aria-hidden="true"> · </span>', $parts ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part is escaped at build time above.
 }
 
-/**
- * Display the legacy "Music Fan Details" card.
- *
- * Renders the free-text favorite_artists / top_concerts / top_venues usermeta.
- * This is the pre-My-Shows manual record; it is now demoted below the real
- * Concert History card (see inc/user-profiles/concert-history.php). When the
- * profile owner has legacy top_concerts text, a nudge invites them to convert
- * it into structured tracked shows via My Shows.
- *
- * Rendered on `bbp_template_after_user_profile` (priority 20) so it appears
- * below the profile card grid, under the Concert History card (priority 5).
- * The original `bbp_init` hook fired during init and the echoed markup was
- * discarded, so this card never actually rendered — hooking a template action
- * fixes that.
- */
-function display_music_fan_details() {
-	$user_id = bbp_get_displayed_user_id();
-
-	// Music Fan Section variables
-	$favorite_artists = get_user_meta( $user_id, 'favorite_artists', true );
-	$top_concerts     = get_user_meta( $user_id, 'top_concerts', true );
-	$top_venues       = get_user_meta( $user_id, 'top_venues', true );
-
-	if ( ! ( $favorite_artists || $top_concerts || $top_venues ) ) {
-		return;
-	}
-
-	$is_own = ( (int) get_current_user_id() === (int) $user_id );
-	?>
-	<div class="bbp-user-profile-card ec-music-fan-details-card">
-		<h3><?php esc_html_e( 'Music Fan Details', 'extra-chill-community' ); ?></h3>
-		<?php if ( $favorite_artists ) : ?>
-			<p><strong><?php esc_html_e( 'Favorite Artists:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $favorite_artists ) ); ?></p>
-		<?php endif; ?>
-
-		<?php if ( $top_concerts ) : ?>
-			<p><strong><?php esc_html_e( 'Top Concerts:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_concerts ) ); ?></p>
-		<?php endif; ?>
-
-		<?php if ( $top_venues ) : ?>
-			<p><strong><?php esc_html_e( 'Top Venues:', 'extra-chill-community' ); ?></strong> <?php echo nl2br( esc_html( $top_venues ) ); ?></p>
-		<?php endif; ?>
-
-		<?php
-		// These are legacy free-text notes from before My Shows existed.
-		// We deliberately do NOT promise to "convert" them: the events
-		// catalog is a forward-looking calendar with almost no historic /
-		// out-of-market shows, so searching for these past memories mostly
-		// finds nothing. Instead, invite the owner to start tracking shows
-		// going forward via My Shows — the path that actually works today.
-		if ( $is_own && function_exists( 'ec_community_my_shows_url' ) ) :
-			$my_shows_url = ec_community_my_shows_url( (int) $user_id );
-			if ( $my_shows_url ) :
-				?>
-				<p class="ec-music-fan-nudge">
-					<em><?php esc_html_e( 'These are your personal notes.', 'extra-chill-community' ); ?></em>
-					<a href="<?php echo esc_url( $my_shows_url ); ?>"><?php esc_html_e( 'Start tracking shows you attend →', 'extra-chill-community' ); ?></a>
-				</p>
-				<?php
-			endif;
-		endif;
-		?>
-	</div>
-	<?php
-}
-
-// Render below the profile card grid, after the Concert History card
-// (priority 5). Priority 20 keeps it last before the activity feed (99).
-add_action( 'bbp_template_after_user_profile', 'display_music_fan_details', 20 );
+// The legacy "Music Fan Details" card (free-text favorite_artists /
+// top_concerts / top_venues usermeta) is retired: the fields had no write
+// path in the block-based edit-profile/settings UI, so the data was frozen.
+// Its text is migrated into user bios (rendered by the About card) via the
+// one-shot `wp extrachill-community migrate-music-fan-details` command —
+// see inc/user-profiles/migrate-music-fan-details.php.
 
 // Load the function after bbPress is fully loaded
 add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );

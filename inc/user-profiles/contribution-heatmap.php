@@ -253,6 +253,6 @@ function ec_community_display_contribution_heatmap() {
 
 // Render below the profile card grid (About / Community Activity / Artists),
 // which sits directly under the header. Priority 1 leads the post-grid
-// sections; Concert History (priority 5) follows, then the legacy Music Fan
-// card (20), with the Recent Activity feed closing out the page (99).
+// sections; Concert History (priority 5) follows, with the Recent Activity
+// feed closing out the page (99).
 add_action( 'bbp_template_after_user_profile', 'ec_community_display_contribution_heatmap', 1 );

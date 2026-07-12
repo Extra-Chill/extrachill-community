@@ -132,6 +132,6 @@ function extrachill_render_profile_activity_feed() {
 	echo '</div>';
 }
 // Fires after the entire profile body (bbpress/user-profile.php). Priority 99
-// keeps the feed the final element on the page, after the heatmap (1),
-// Concert History (5), and Music Fan Details (20) which share this hook.
+// keeps the feed the final element on the page, after the heatmap (1) and
+// Concert History (5) which share this hook.
 add_action( 'bbp_template_after_user_profile', 'extrachill_render_profile_activity_feed', 99 );

@@ -241,6 +241,6 @@ function ec_community_display_concert_history() {
 	<?php
 }
 
-// Render below the profile card grid, after the contribution heatmap
-// (priority 1) and above the legacy "Music Fan Details" card (priority 20).
+// Render below the About card, after the contribution heatmap (priority 1)
+// and above the Recent Conversations feed (priority 99).
 add_action( 'bbp_template_after_user_profile', 'ec_community_display_concert_history', 5 );

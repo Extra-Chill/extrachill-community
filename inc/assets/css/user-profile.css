@@ -399,17 +399,6 @@
 	margin-bottom: 0.75rem;
 }
 
-/* Legacy free-text music-fan notes: demoted, lighter weight. */
-.ec-music-fan-details-card .ec-music-fan-nudge {
-	margin-top: 0.75rem;
-	font-size: 0.9rem;
-	opacity: 0.85;
-}
-
-.ec-music-fan-details-card .ec-music-fan-nudge em {
-	opacity: 0.7;
-}
-
 /* ==================================================
    Contribution Activity heatmap (GitHub-style grid)
    ================================================== */
