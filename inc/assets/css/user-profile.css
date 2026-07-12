@@ -361,18 +361,15 @@
     width: 100%;
 }
 
-/* About, Concert History, Contribution heatmap, and legacy Music Fan cards
-   render via the bbp_template_after_user_details hook (see user-details.php),
-   which places them outside .bbp-user-profile-cards-container — directly under
-   the header card, not inside the 2-column flex grid. Keep them full-width so
-   the desktop half-width card rule above doesn't shrink them. */
-.bbp-user-profile-card.ec-about-card,
+/* Concert History, Contribution heatmap, and legacy Music Fan cards render via
+   the bbp_template_after_user_details hook (see user-details.php), which places
+   them outside .bbp-user-profile-cards-container — directly under the header
+   card, not inside the 2-column flex grid. Keep them full-width so the desktop
+   half-width card rule above doesn't shrink them. */
 .bbp-user-profile-card.ec-concert-history-card,
 .bbp-user-profile-card.ec-music-fan-details-card,
 .bbp-user-profile-card.ec-contribution-heatmap-card {
     width: 100%;
-    margin-left: 0;
-    margin-right: 0;
 }
 
 /* Artist list renders as pill-style buttons; suppress default list bullets. */
