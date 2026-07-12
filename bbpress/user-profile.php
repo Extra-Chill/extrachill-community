@@ -23,26 +23,11 @@ do_action('bbp_template_before_user_profile');
 	?>
 
 <?php
-// Compute About-card content up front so the card wrapper only renders when
-// there is actually something to show (avoids an empty bordered box for users
-// with no description and no local scene).
-$about_description = bbp_get_displayed_user_field('description');
-$about_local_scene = extrachill_community_get_public_local_scene( bbp_get_displayed_user_id() );
-$has_about_content = ! empty( $about_description ) || ! empty( $about_local_scene['name'] );
+// The About card (bio + local scene) renders directly under the profile
+// header via bbp_template_after_user_details priority 0 — see
+// inc/user-profiles/public-profile.php.
 ?>
 <div class="bbp-user-profile-cards-container"> <?php // Start Flex Grid Container ?>
-<?php if ( $has_about_content ) : ?>
-<div class="bbp-user-profile-card">
-			<?php if ( $about_description ) : ?>
-				<h3><?php esc_html_e( 'About', 'extra-chill-community' ); ?></h3>
-		<p class="bbp-user-description"><?php echo wp_kses_post( bbp_rel_nofollow( $about_description ) ); ?></p>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $about_local_scene['name'] ) ) : ?>
-		<p class="bbp-user-local-scene-inline"><strong><?php esc_html_e( 'Local Scene:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $about_local_scene['name'] ); ?></p>
-			<?php endif; ?>
-</div>
-<?php endif; // End has_about_content ?>
 			<?php do_action( 'bbp_template_before_user_details_menu_items' ); ?>
 		<div class="bbp-user-profile-card">
 		<div class="user-profile-activity">
