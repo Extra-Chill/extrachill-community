@@ -21,10 +21,22 @@ import type {
 const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), { validateAbilityNames: false } );
 const LOCATION_SEARCH_DEBOUNCE_MS = 250;
 
-interface LocationTerm {
-	id: number;
+interface EventLocation {
+	term_id: number;
 	name: string;
 	slug: string;
+	archive_url: string;
+	coordinates: { lat: number; lon: number } | null;
+	hierarchy: {
+		region: string;
+		state: string;
+		label: string;
+	};
+}
+
+interface EventLocationsResponse {
+	locations: EventLocation[];
+	location: EventLocation | null;
 }
 
 const styles = {
@@ -73,17 +85,10 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		}
 
 		locationSearchTimeout.current = window.setTimeout( () => {
-			const params = new URLSearchParams( {
-				search: trimmed,
-				per_page: '10',
-				_fields: 'id,name,slug',
-				orderby: 'count',
-				order: 'desc',
-			} );
-			apiFetch< LocationTerm[] >( { path: `/wp/v2/location?${ params.toString() }` } )
-				.then( ( terms ) => {
+			client.execute< EventLocationsResponse >( 'extrachill/events-locations', { mode: 'search', search: trimmed, limit: 10 } )
+				.then( ( result ) => {
 					if ( request === locationSearchRequest.current ) {
-						setLocationOptions( terms.map( ( term ) => ( { label: term.name, value: term.slug } ) ) );
+						setLocationOptions( result.locations.map( ( location ) => ( { label: location.hierarchy.label, value: location.slug } ) ) );
 					}
 				} )
 				.catch( () => {
@@ -103,7 +108,7 @@ function AccountTab( { settings, onUpdate }: { settings: UserSettings; onUpdate:
 		setSaving( true );
 		setNotice( null );
 		try {
-			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName, default_event_location_slug: defaultEventLocationSlug } );
+			const result = await client.execute< UserSettings & { message?: string } >( 'extrachill/update-user-settings', { first_name: firstName, last_name: lastName, display_name: displayName, default_event_location: defaultEventLocationSlug ?? '' } );
 			onUpdate( result );
 			setDefaultEventLocationSlug( result.default_event_location?.slug ?? null );
 			setNotice( { type: 'success', message: result.message || 'Account details updated.' } );
