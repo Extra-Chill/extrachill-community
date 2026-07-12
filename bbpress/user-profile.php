@@ -64,7 +64,7 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_scen
 	display_main_site_post_count_on_profile();
 	?>
 
-	<!-- Display Main Site Comments Count -->
+	<!-- Display Main Site Comments Count (hidden at zero — no noise) -->
 	<?php
 	$user_id       = bbp_get_displayed_user_id();
 	$comment_count = function_exists('get_user_main_site_comment_count') ? get_user_main_site_comment_count($user_id) : 0;
@@ -72,8 +72,6 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_scen
 	if ( $comment_count > 0 ) {
 		$comments_url = ec_get_site_url( 'community' ) . "/blog-comments?user_id={$user_id}";
 		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . (int) $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
-	} else {
-		echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . (int) $comment_count . '</p>';
 	}
 	?>
 	</div>
@@ -84,22 +82,25 @@ $has_about_content = ! empty( $about_description ) || ! empty( $about_local_scen
 // Check if the user is marked as an artist or professional
 if ( $is_artist || $is_professional ) :
 	// Use canonical function from extrachill-users plugin
-	$user_artist_ids = function_exists('ec_get_artists_for_user') ? ec_get_artists_for_user( bbp_get_displayed_user_id() ) : array();
+	$user_artist_ids  = function_exists('ec_get_artists_for_user') ? ec_get_artists_for_user( bbp_get_displayed_user_id() ) : array();
+	$can_manage_card  = ( bbp_get_displayed_user_id() === get_current_user_id() || current_user_can( 'manage_options' ) );
+
+	// A visitor viewing an artist with no artist profiles gets nothing useful
+	// from this card (no list, no actions) — skip it entirely.
+	if ( empty( $user_artist_ids ) && ! $can_manage_card ) :
+		// No card.
+	else :
+		$display_name = bbp_get_displayed_user_field('display_name');
+		if ( ! empty( $user_artist_ids ) ) {
+			/* translators: %s: user display name */
+			$artist_card_heading = sprintf( __( "%s's Artists", 'extra-chill-community' ), $display_name );
+		} else {
+			// Own profile (or admin view) with no bands yet.
+			$artist_card_heading = __( 'Your Artist Profile & Link Page', 'extra-chill-community' );
+		}
 	?>
 	<div class="bbp-user-profile-card user-artist-cards-fullwidth">
-		<h2>
-			<?php
-			$display_name = bbp_get_displayed_user_field('display_name');
-			// Adjust title based on whether they have bands or not
-			if ( ! empty($user_artist_ids) ) {
-				/* translators: %s: user display name */
-				printf( esc_html__( "%s's Artists", 'extra-chill-community' ), esc_html($display_name) );
-			} elseif ( bbp_get_displayed_user_id() === get_current_user_id() ) {
-				// Title for own profile with no bands
-				esc_html_e( 'Your Artist Profile & Link Page', 'extra-chill-community' );
-			}
-			?>
-		</h2>
+		<h2><?php echo esc_html( $artist_card_heading ); ?></h2>
 		<?php if ( ! empty($user_artist_ids) ) : ?>
 			<ul class="user-artist-list">
 				<?php
@@ -130,10 +131,9 @@ if ( $is_artist || $is_professional ) :
 
 		<?php
 		// Management buttons - only show if viewing own profile or user is admin
-		if ( bbp_get_displayed_user_id() === get_current_user_id() || current_user_can( 'manage_options' ) ) :
-			$current_user_id_for_card_buttons = get_current_user_id();
-			$artist_count                     = is_array( $user_artist_ids ) ? count( $user_artist_ids ) : 0;
-			$base_manage_artists_url_card     = ec_get_site_url( 'artist' ) . '/manage-artist/';
+		if ( $can_manage_card ) :
+			$artist_count                 = is_array( $user_artist_ids ) ? count( $user_artist_ids ) : 0;
+			$base_manage_artists_url_card = ec_get_site_url( 'artist' ) . '/manage-artist/';
 
 			echo '<div class="user-artist-management-actions">';
 
@@ -152,6 +152,7 @@ if ( $is_artist || $is_professional ) :
 		endif; // End permission check
 		?>
 	</div>
+	<?php endif; // End has-artists-or-can-manage check ?>
 <?php endif; // End if user_is_artist or user_is_professional ?>
 
 </div> <?php // End .bbp-user-profile-cards-container (Flex Grid) ?>
