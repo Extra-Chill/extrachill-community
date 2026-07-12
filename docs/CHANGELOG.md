@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.16.0] - 2026-07-12
+
+### Added
+- add Local Scene member archives
+
+## [1.15.0] - 2026-07-12
+
+### Added
+- link Local Scene profile badges
+- notify festival subscribers about discussions
+- add festival-tagged community discussions
+
 ## [1.14.0] - 2026-07-12
 
 ### Added

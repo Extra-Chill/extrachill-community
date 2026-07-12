@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Community
  * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
- * Version: 1.14.0
+ * Version: 1.16.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_COMMUNITY_VERSION', '1.14.0' );
+define( 'EXTRACHILL_COMMUNITY_VERSION', '1.16.0' );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__ );
@@ -37,6 +37,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-artist.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/breadcrumb-filter.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/page-templates.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-archives.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-spam-adjustments.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/sidebar.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/nav.php';
@@ -81,6 +82,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-subscriptions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-festival-topics.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';
 
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/contribution-heatmap.php';

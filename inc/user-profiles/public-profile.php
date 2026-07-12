@@ -101,7 +101,14 @@ function extrachill_community_display_identity_line() {
 
 	$local_scene = extrachill_community_get_public_local_scene( (int) $user_id );
 	if ( ! empty( $local_scene['name'] ) ) {
-		$parts[] = '<strong>' . esc_html__( 'Local Scene:', 'extra-chill-community' ) . '</strong> ' . esc_html( $local_scene['name'] );
+		// Compose the canonical linked location badge (Local Scene archives)
+		// so the hero placement keeps the archive link.
+		ob_start();
+		extrachill_community_render_local_scene_badge( $local_scene, true );
+		$scene_badge = trim( ob_get_clean() );
+		if ( '' !== $scene_badge ) {
+			$parts[] = '<strong>' . esc_html__( 'Local Scene:', 'extra-chill-community' ) . '</strong> ' . $scene_badge;
+		}
 	}
 
 	$memberships = extrachill_community_get_artist_memberships( (int) $user_id );
@@ -118,4 +125,35 @@ function extrachill_community_display_identity_line() {
 	}
 
 	echo '<p class="bbp-user-identity-line">' . implode( '<span class="bbp-user-meta-sep" aria-hidden="true"> · </span>', $parts ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part is escaped at build time above.
+}
+
+/**
+ * Render a canonical Local Scene as a linked platform location badge.
+ *
+ * @param array $scene   Visibility-filtered Local Scene data.
+ * @param bool  $compact Whether to use only the city name.
+ */
+function extrachill_community_render_local_scene_badge( array $scene, bool $compact = false ): void {
+	$name      = sanitize_text_field( $scene['name'] ?? '' );
+	$hierarchy = is_array( $scene['hierarchy'] ?? null ) ? $scene['hierarchy'] : array();
+	$label     = $compact ? $name : sanitize_text_field( $hierarchy['label'] ?? $name );
+	$slug      = sanitize_title( $scene['slug'] ?? '' );
+	$url       = '' !== $slug ? extrachill_community_get_local_scene_url( $slug ) : '';
+	$aria      = sprintf( 'Local Scene: %s', $label );
+
+	if ( '' === $label ) {
+		return;
+	}
+
+	$classes = 'taxonomy-badge location-badge';
+	if ( '' !== $slug ) {
+		$classes .= ' location-' . sanitize_html_class( $slug );
+	}
+
+	if ( '' !== $url ) {
+		printf( '<a class="%1$s" href="%2$s" aria-label="%3$s">%4$s</a>', esc_attr( $classes ), esc_url( $url ), esc_attr( $aria ), esc_html( $label ) );
+		return;
+	}
+
+	printf( '<span class="%1$s" aria-label="%2$s">%3$s</span>', esc_attr( $classes ), esc_attr( $aria ), esc_html( $label ) );
 }
