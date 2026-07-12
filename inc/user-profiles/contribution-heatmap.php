@@ -169,10 +169,10 @@ function ec_community_display_contribution_heatmap() {
 		</div>
 
 		<div class="ec-heatmap-scroll">
-			<div class="ec-heatmap" role="img" aria-label="<?php echo esc_attr( sprintf( __( '%d contributions in the last year', 'extra-chill-community' ), $total ) ); ?>">
+			<div class="ec-heatmap" role="img" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;" aria-label="<?php echo esc_attr( sprintf( __( '%d contributions in the last year', 'extra-chill-community' ), $total ) ); ?>">
 				<div class="ec-heatmap-corner" aria-hidden="true"></div>
 
-				<div class="ec-heatmap-months" style="--ec-heat-weeks:<?php echo (int) $weeks; ?>;grid-template-columns:repeat(<?php echo (int) $weeks; ?>,var(--ec-heat-cell));">
+				<div class="ec-heatmap-months" style="grid-template-columns:repeat(<?php echo (int) $weeks; ?>,var(--ec-heat-cell));">
 					<?php
 					$prev_month = '';
 					for ( $col = 0; $col < $weeks; $col++ ) {
@@ -228,7 +228,8 @@ function ec_community_display_contribution_heatmap() {
 							?>
 							<span
 								class="ec-heat-cell level-<?php echo (int) $level; ?>"
-								title="<?php echo esc_attr( $label ); ?>"
+								data-ec-tip="<?php echo esc_attr( $label ); ?>"
+								tabindex="0"
 							></span>
 							<?php
 						}
