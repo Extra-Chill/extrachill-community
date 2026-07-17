@@ -73,12 +73,18 @@ function trailingslashit( $value ) {
 	return rtrim( $value, '/' ) . '/';
 }
 function add_query_arg( $args, $url = '' ) {
+	// Match WordPress: newly assigned values must already be URL-encoded.
 	if ( ! is_array( $args ) ) {
 		$args = array( $args => $url );
 		$url  = func_get_arg( 2 );
 	}
 
-	return $url . '?' . http_build_query( $args );
+	$pairs = array();
+	foreach ( $args as $key => $value ) {
+		$pairs[] = $key . '=' . $value;
+	}
+
+	return $url . '?' . implode( '&', $pairs );
 }
 function rest_url() {
 	return 'https://community.extrachill.com/wp-json/';
@@ -135,6 +141,8 @@ check(
 	'logged-out continuation preserves the validated composer URL',
 	'https://community.extrachill.com/?compose=discussion&entity_taxonomy=artist&entity_slug=phish' === ( $login_query['redirect_to'] ?? '' )
 );
+check( 'nested composer state does not leak into outer login arguments', ! isset( $login_query['entity_taxonomy'], $login_query['entity_slug'] ) );
+check( 'login query contains only the complete redirect destination', array( 'redirect_to' ) === array_keys( $login_query ) );
 check(
 	'unsupported taxonomy is rejected',
 	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_taxonomy' => 'post_tag' ) ) )
