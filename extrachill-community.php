@@ -35,6 +35,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-location.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-festival.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-artist.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/artist-profile-discussions.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/breadcrumb-filter.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/page-templates.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/legacy-topic-redirects.php';
