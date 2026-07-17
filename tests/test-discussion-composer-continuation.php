@@ -92,6 +92,15 @@ function wp_create_nonce() {
 function get_the_terms() {
 	return array();
 }
+function esc_attr_e( $text ) {
+	echo htmlspecialchars( $text, ENT_QUOTES );
+}
+function esc_html_e( $text ) {
+	echo htmlspecialchars( $text, ENT_QUOTES );
+}
+function bbp_get_template_part() {
+	echo '<form id="new-post"></form>';
+}
 
 require dirname( __DIR__ ) . '/inc/content/editor/composer-term-picker.php';
 
@@ -119,6 +128,13 @@ check(
 	'canonical URL uses taxonomy and slug state',
 	'https://community.extrachill.com/?compose=discussion&entity_taxonomy=artist&entity_slug=phish' === extrachill_community_get_discussion_composer_url( 'artist', 'phish' )
 );
+$login_url = extrachill_community_get_discussion_composer_login_url( 'artist', 'phish' );
+parse_str( (string) parse_url( $login_url, PHP_URL_QUERY ), $login_query );
+check( 'logged-out continuation uses the canonical login path', 'https://community.extrachill.com/login/' === strtok( $login_url, '?' ) );
+check(
+	'logged-out continuation preserves the validated composer URL',
+	'https://community.extrachill.com/?compose=discussion&entity_taxonomy=artist&entity_slug=phish' === ( $login_query['redirect_to'] ?? '' )
+);
 check(
 	'unsupported taxonomy is rejected',
 	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_taxonomy' => 'post_tag' ) ) )
@@ -131,6 +147,22 @@ check(
 	'missing discussion action degrades to normal composer',
 	null === extrachill_community_get_discussion_composer_state( array_diff_key( $valid_query, array( 'compose' => true ) ) )
 );
+check(
+	'array taxonomy state is rejected',
+	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_taxonomy' => array( 'artist' ) ) ) )
+);
+check(
+	'array term state is rejected',
+	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_slug' => array( 'phish' ) ) ) )
+);
+check(
+	'non-canonical taxonomy state is rejected',
+	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_taxonomy' => 'Artist!' ) ) )
+);
+check(
+	'non-canonical term state is rejected',
+	null === extrachill_community_get_discussion_composer_state( array_merge( $valid_query, array( 'entity_slug' => '../phish' ) ) )
+);
 
 $_GET = $valid_query;
 $config = extrachill_community_term_picker_config();
@@ -141,6 +173,23 @@ $GLOBALS['_test_can_publish'] = false;
 $config                       = extrachill_community_term_picker_config();
 $artist                       = array_values( array_filter( $config['taxonomies'], fn( $entry ) => 'artist' === $entry['taxonomy'] ) )[0];
 check( 'topic permissions gate preselection', array() === $artist['selected'] );
+
+function render_topic_modal() {
+	ob_start();
+	include dirname( __DIR__ ) . '/inc/home/new-topic-modal.php';
+	return ob_get_clean();
+}
+
+$GLOBALS['_test_can_publish'] = true;
+$_GET                         = $valid_query;
+check( 'valid authorized continuation marks modal for auto-open', false !== strpos( render_topic_modal(), 'data-auto-open="true"' ) );
+
+$_GET = array_merge( $valid_query, array( 'entity_slug' => '../phish' ) );
+check( 'malformed continuation leaves modal closed', false !== strpos( render_topic_modal(), 'data-auto-open="false"' ) );
+
+$GLOBALS['_test_can_publish'] = false;
+$_GET                         = $valid_query;
+check( 'unauthorized continuation leaves modal closed', false !== strpos( render_topic_modal(), 'data-auto-open="false"' ) );
 
 if ( $failures > 0 ) {
 	exit( 1 );

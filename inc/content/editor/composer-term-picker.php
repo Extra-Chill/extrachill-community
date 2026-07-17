@@ -93,11 +93,24 @@ function extrachill_community_get_discussion_composer_state( $query = null ) {
 		$query = $_GET;
 	}
 
-	$compose  = isset( $query['compose'] ) && is_scalar( $query['compose'] ) ? sanitize_key( wp_unslash( (string) $query['compose'] ) ) : '';
-	$taxonomy = isset( $query['entity_taxonomy'] ) && is_scalar( $query['entity_taxonomy'] ) ? sanitize_key( wp_unslash( (string) $query['entity_taxonomy'] ) ) : '';
-	$slug     = isset( $query['entity_slug'] ) && is_scalar( $query['entity_slug'] ) ? sanitize_title( wp_unslash( (string) $query['entity_slug'] ) ) : '';
+	if ( ! isset( $query['compose'], $query['entity_taxonomy'], $query['entity_slug'] )
+		|| ! is_scalar( $query['compose'] )
+		|| ! is_scalar( $query['entity_taxonomy'] )
+		|| ! is_scalar( $query['entity_slug'] ) ) {
+		return null;
+	}
 
-	if ( 'discussion' !== $compose || ! in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true ) || '' === $slug ) {
+	$raw_compose  = wp_unslash( (string) $query['compose'] );
+	$raw_taxonomy = wp_unslash( (string) $query['entity_taxonomy'] );
+	$raw_slug     = wp_unslash( (string) $query['entity_slug'] );
+	$compose      = sanitize_key( $raw_compose );
+	$taxonomy     = sanitize_key( $raw_taxonomy );
+	$slug         = sanitize_title( $raw_slug );
+
+	if ( $raw_compose !== $compose || $raw_taxonomy !== $taxonomy || $raw_slug !== $slug
+		|| 'discussion' !== $compose
+		|| ! in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true )
+		|| '' === $slug ) {
 		return null;
 	}
 
@@ -149,6 +162,27 @@ function extrachill_community_get_discussion_composer_url( $taxonomy, $slug ) {
 }
 
 /**
+ * Build the canonical login URL for a validated composer continuation.
+ *
+ * Extra Chill Users owns validation and precedence for the eventual login
+ * round trip. Community only supplies its validated same-network destination.
+ *
+ * @param string $taxonomy Entity taxonomy.
+ * @param string $slug     Existing term slug.
+ * @return string Login URL, or an empty string for invalid state.
+ */
+function extrachill_community_get_discussion_composer_login_url( $taxonomy, $slug ) {
+	$redirect_to = extrachill_community_get_discussion_composer_url( $taxonomy, $slug );
+	if ( '' === $redirect_to ) {
+		return '';
+	}
+
+	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+
+	return add_query_arg( 'redirect_to', $redirect_to, trailingslashit( $community_url ) . 'login/' );
+}
+
+/**
  * Whether the current user may receive composer preselection state.
  *
  * The normal bbPress form and submission checks remain authoritative; this
@@ -175,13 +209,10 @@ function extrachill_community_maybe_redirect_discussion_composer_login() {
 		return;
 	}
 
-	$redirect_to = extrachill_community_get_discussion_composer_url( $state['taxonomy'], $state['term']->slug );
-	if ( '' === $redirect_to ) {
+	$login_url = extrachill_community_get_discussion_composer_login_url( $state['taxonomy'], $state['term']->slug );
+	if ( '' === $login_url ) {
 		return;
 	}
-
-	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
-	$login_url     = add_query_arg( 'redirect_to', $redirect_to, trailingslashit( $community_url ) . 'login/' );
 
 	wp_safe_redirect( $login_url );
 	exit;
