@@ -29,6 +29,15 @@
 	font-weight: 700;
 }
 
+.bbp-public-voice-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-2);
+	color: var(--card-background);
+	font-weight: 700;
+}
+
 .bbp-public-voice-type,
 .bbp-public-voice-automated {
 	padding: 0.1rem 0.4rem;

@@ -8,20 +8,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Return the bounded ability input schema for a public voice reference.
- *
- * @return array<string,mixed>
- */
-function extrachill_community_public_voice_input_schema() {
-	return array(
-		'type'        => 'string',
-		'pattern'     => '^(artist|venue):[1-9][0-9]*$',
-		'maxLength'   => 40,
-		'description' => 'Optional canonical managed public voice, such as artist:123 or venue:55. An empty string clears the voice on update.',
-	);
-}
-
-/**
  * Normalize a caller-provided canonical reference.
  *
  * @param mixed $reference Candidate reference.
@@ -119,7 +105,7 @@ function extrachill_community_get_managed_venue_voices() {
 	$voices = array();
 	foreach ( $response['voices'] as $voice ) {
 		if ( ! is_array( $voice ) ) {
-			continue;
+			return new WP_Error( 'managed_venue_voices_invalid', __( 'Managed venues returned an invalid voice.', 'extra-chill-community' ) );
 		}
 
 		$term_id   = absint( $voice['term_id'] ?? 0 );
@@ -127,7 +113,7 @@ function extrachill_community_get_managed_venue_voices() {
 		$name      = sanitize_text_field( (string) ( $voice['name'] ?? '' ) );
 		$url       = esc_url_raw( (string) ( $voice['url'] ?? '' ) );
 		if ( ! $term_id || 'venue:' . $term_id !== $reference || '' === $name || '' === $url ) {
-			continue;
+			return new WP_Error( 'managed_venue_voices_invalid', __( 'Managed venues returned an invalid voice.', 'extra-chill-community' ) );
 		}
 
 		$voices[ $reference ] = array(
@@ -220,8 +206,12 @@ function extrachill_community_prepare_public_voice_change( $input, $author_id, $
 
 	$voice = extrachill_community_authorize_public_voice( $requested, $new_author_id );
 	if ( is_wp_error( $voice ) ) {
-		// An ordinary content edit safely removes authority that has since been revoked.
-		return $post_id && ! $has_input ? '' : $voice;
+		if ( $post_id && ! $has_input ) {
+			// Only a successful canonical projection can prove revocation. Transport,
+			// dependency, and malformed-response failures preserve existing metadata.
+			return 'public_voice_not_managed' === $voice->get_error_code() ? '' : null;
+		}
+		return $voice;
 	}
 
 	return $voice['reference'];
@@ -257,12 +247,14 @@ function extrachill_community_resolve_public_voice( $reference ) {
 		try {
 			$post = $artist_blog_id ? get_post( $id ) : null;
 			if ( $post instanceof WP_Post && 'artist_profile' === $post->post_type && 'publish' === $post->post_status ) {
+				$avatar_url = function_exists( 'get_the_post_thumbnail_url' ) ? get_the_post_thumbnail_url( $post, 'thumbnail' ) : '';
 				$identity = array(
 					'reference' => $reference,
 					'type'      => 'artist',
 					'id'        => $id,
 					'name'      => sanitize_text_field( $post->post_title ),
 					'url'       => esc_url_raw( get_permalink( $post ) ),
+					'avatar_url' => esc_url_raw( (string) $avatar_url ),
 				);
 			}
 		} finally {
@@ -275,6 +267,7 @@ function extrachill_community_resolve_public_voice( $reference ) {
 		if ( ! is_wp_error( $response ) && is_array( $response ) && absint( $response['id'] ?? 0 ) === $id ) {
 			$name = is_array( $response['name'] ?? null ) ? ( $response['name']['rendered'] ?? '' ) : ( $response['name'] ?? '' );
 			$url  = esc_url_raw( (string) ( $response['link'] ?? '' ) );
+			$avatar_url = esc_url_raw( (string) ( $response['avatar_url'] ?? '' ) );
 			if ( '' !== sanitize_text_field( wp_strip_all_tags( (string) $name ) ) && '' !== $url ) {
 				$identity = array(
 					'reference' => $reference,
@@ -282,6 +275,7 @@ function extrachill_community_resolve_public_voice( $reference ) {
 					'id'        => $id,
 					'name'      => sanitize_text_field( wp_strip_all_tags( (string) $name ) ),
 					'url'       => $url,
+					'avatar_url' => $avatar_url,
 				);
 			}
 		}
@@ -315,12 +309,15 @@ function extrachill_community_format_post_public_voice( $post_id ) {
 	}
 
 	$author_id  = absint( get_post_field( 'post_author', $post_id ) );
-	$disclosure = array(
+	return array(
+		'reference'           => $identity['reference'],
+		'type'                => $identity['type'],
+		'id'                  => $identity['id'],
+		'name'                => $identity['name'],
+		'url'                 => $identity['url'],
 		'accountable_user_id' => $author_id,
 		'automated'           => '' !== sanitize_key( (string) get_post_meta( $post_id, EXTRACHILL_COMMUNITY_AUTOMATED_META, true ) ),
 	);
-
-	return array_merge( $identity, $disclosure );
 }
 
 /**
@@ -388,6 +385,8 @@ function extrachill_community_validate_native_public_voice( $post_id = 0 ) {
 	$requested = trim( (string) wp_unslash( $_POST['bbp_public_voice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	$existing  = $post_id ? (string) get_post_meta( $post_id, EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META, true ) : '';
 	$author_id = $post_id ? absint( get_post_field( 'post_author', $post_id ) ) : (int) get_current_user_id();
+	$preserve_unverified = ! empty( $_POST['bbp_public_voice_preserve'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		&& $requested === $existing;
 
 	if ( $post_id && (int) get_current_user_id() !== $author_id ) {
 		if ( $requested !== $existing ) {
@@ -399,6 +398,10 @@ function extrachill_community_validate_native_public_voice( $post_id = 0 ) {
 	if ( '' !== $requested ) {
 		$voice = extrachill_community_authorize_public_voice( $requested, $author_id );
 		if ( is_wp_error( $voice ) ) {
+			if ( $preserve_unverified && 'public_voice_not_managed' !== $voice->get_error_code() ) {
+				$GLOBALS['extrachill_community_pending_public_voice'] = null;
+				return;
+			}
 			bbp_add_error( 'bbp_public_voice_not_managed', '<strong>' . esc_html__( 'Error:', 'extra-chill-community' ) . '</strong> ' . esc_html( $voice->get_error_message() ) );
 			return;
 		}
@@ -481,10 +484,19 @@ function extrachill_community_render_public_voice_selector( $type ) {
 
 	$artists = extrachill_community_get_managed_artist_voices( $user_id );
 	$venues  = extrachill_community_get_managed_venue_voices();
+	$preserve_unverified = $post_id && 0 === strpos( $current, 'venue:' ) && is_wp_error( $venues );
+	$current_identity    = $preserve_unverified ? extrachill_community_resolve_public_voice( $current ) : null;
 	?>
 	<div class="bbp-public-voice-field">
 		<label for="bbp_public_voice"><?php esc_html_e( 'Publish as', 'extra-chill-community' ); ?></label>
-		<select id="bbp_public_voice" name="bbp_public_voice" aria-describedby="bbp-public-voice-help bbp-public-voice-status">
+		<?php if ( $preserve_unverified ) : ?>
+			<input type="hidden" name="bbp_public_voice" value="<?php echo esc_attr( $current ); ?>">
+			<input type="hidden" name="bbp_public_voice_preserve" value="1">
+		<?php endif; ?>
+		<select id="bbp_public_voice" name="<?php echo $preserve_unverified ? '' : 'bbp_public_voice'; ?>" aria-describedby="bbp-public-voice-help bbp-public-voice-status" <?php disabled( $preserve_unverified ); ?>>
+			<?php if ( $preserve_unverified ) : ?>
+				<option selected><?php echo esc_html( $current_identity ? $current_identity['name'] : $current ); ?></option>
+			<?php endif; ?>
 			<option value=""><?php esc_html_e( 'Myself', 'extra-chill-community' ); ?></option>
 			<?php if ( ! empty( $artists ) ) : ?>
 				<optgroup label="<?php esc_attr_e( 'Artists you manage', 'extra-chill-community' ); ?>">
@@ -503,7 +515,9 @@ function extrachill_community_render_public_voice_selector( $type ) {
 		</select>
 		<p id="bbp-public-voice-help" class="description"><?php esc_html_e( 'Your account remains responsible for this post. Only public entity identity is shown.', 'extra-chill-community' ); ?></p>
 		<p id="bbp-public-voice-status" class="bbp-public-voice-status" role="status" aria-live="polite" aria-busy="false">
-			<?php if ( is_wp_error( $venues ) ) : ?>
+			<?php if ( $preserve_unverified ) : ?>
+				<?php esc_html_e( 'The current venue voice could not be reauthorized. It will be preserved; try again later to change it.', 'extra-chill-community' ); ?>
+			<?php elseif ( is_wp_error( $venues ) ) : ?>
 				<?php esc_html_e( 'Managed venues could not be loaded. Artist and personal publishing remain available.', 'extra-chill-community' ); ?>
 			<?php elseif ( empty( $venues ) ) : ?>
 				<?php esc_html_e( 'No managed venue voices are available.', 'extra-chill-community' ); ?>
@@ -511,7 +525,7 @@ function extrachill_community_render_public_voice_selector( $type ) {
 				<?php esc_html_e( 'Managed venue voices loaded.', 'extra-chill-community' ); ?>
 			<?php endif; ?>
 		</p>
-		<?php if ( '' !== $current && ! isset( $artists[ $current ] ) && ( is_wp_error( $venues ) || ! isset( $venues[ $current ] ) ) ) : ?>
+		<?php if ( ! $preserve_unverified && '' !== $current && ! isset( $artists[ $current ] ) && ( is_wp_error( $venues ) || ! isset( $venues[ $current ] ) ) ) : ?>
 			<p class="bbp-public-voice-warning" role="alert"><?php esc_html_e( 'The previous public voice is no longer authorized and will be cleared when you save.', 'extra-chill-community' ); ?></p>
 		<?php endif; ?>
 	</div>
