@@ -13,17 +13,32 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Resolve and authorize the authenticated author for a forum write.
+ * Whether this request is running in WordPress's trusted CLI bootstrap.
+ *
+ * @return bool
+ */
+function extrachill_community_is_wp_cli_request() {
+	// The standalone regression defines WP_CLI midway through one process to test both contexts.
+	// @phpstan-ignore-next-line booleanAnd.rightAlwaysTrue
+	return defined( 'WP_CLI' ) && (bool) constant( 'WP_CLI' );
+}
+
+/**
+ * Resolve and authorize the trusted actor for a forum write.
  *
  * The ambient Agents API principal is host-resolved and may carry a capability
  * ceiling. Ability input is never an authority for authorship; a legacy
- * self-matching user_id remains accepted for existing internal callers.
+ * self-matching user_id remains accepted for existing internal callers. WP-CLI
+ * may explicitly select an author only when no authenticated principal exists.
  *
- * @param array  $input      Ability input.
- * @param string $capability Required bbPress publish capability.
- * @return int|WP_Error Authenticated author ID on success.
+ * @param array  $input            Ability input.
+ * @param string $capability       Required bbPress capability.
+ * @param int    $object_id        Optional object ID for meta capabilities.
+ * @param bool   $allow_cli_author Whether trusted WP-CLI may select the actor.
+ * @param string $error_code       Authorization failure code.
+ * @return int|WP_Error Trusted actor ID on success.
  */
-function extrachill_community_authorize_post_creation( $input, $capability ) {
+function extrachill_community_authorize_forum_action( $input, $capability, $object_id = 0, $allow_cli_author = false, $error_code = 'cannot_publish' ) {
 	$current_user_id = get_current_user_id();
 	$principal       = null;
 
@@ -53,21 +68,29 @@ function extrachill_community_authorize_post_creation( $input, $capability ) {
 		$user_id = $current_user_id;
 	}
 
+	if ( $user_id <= 0 && null === $principal && $allow_cli_author && extrachill_community_is_wp_cli_request() && isset( $input['user_id'] ) ) {
+		$cli_user_id = (int) $input['user_id'];
+		if ( $cli_user_id > 0 && get_userdata( $cli_user_id ) ) {
+			$user_id = $cli_user_id;
+		}
+	}
+
 	if ( $user_id <= 0 ) {
 		return new WP_Error( 'missing_user', 'An authenticated user is required.' );
 	}
 
-	if ( isset( $input['user_id'] ) && (int) $input['user_id'] !== $user_id ) {
-		return new WP_Error( 'author_mismatch', 'The requested author does not match the authenticated user.' );
+	if ( $principal instanceof AgentsAPI\AI\WP_Agent_Execution_Principal
+		&& $principal->capability_ceiling instanceof WP_Agent_Capability_Ceiling
+		&& ! $principal->capability_ceiling->allows_capability( $capability )
+	) {
+		return new WP_Error( $error_code, 'The execution principal does not allow this action.' );
 	}
 
 	$site = extrachill_community_switch_to_community_blog();
 	try {
-		if ( $principal instanceof AgentsAPI\AI\WP_Agent_Execution_Principal && class_exists( 'WP_Agent_WordPress_Authorization_Policy' ) ) {
-			$allowed = ( new WP_Agent_WordPress_Authorization_Policy() )->can( $principal, $capability );
-		} else {
-			$allowed = user_can( $user_id, $capability );
-		}
+		$allowed = $object_id > 0
+			? user_can( $user_id, $capability, $object_id )
+			: user_can( $user_id, $capability );
 	} finally {
 		if ( $site['switched'] ) {
 			restore_current_blog();
@@ -75,10 +98,58 @@ function extrachill_community_authorize_post_creation( $input, $capability ) {
 	}
 
 	if ( ! $allowed ) {
-		return new WP_Error( 'cannot_publish', 'The authenticated user cannot publish this content.' );
+		return new WP_Error( $error_code, 'The trusted actor cannot perform this action.' );
 	}
 
 	return $user_id;
+}
+
+/**
+ * Resolve and authorize the author for topic/reply creation.
+ *
+ * @param array  $input      Ability input.
+ * @param string $capability Required bbPress publish capability.
+ * @return int|WP_Error Authenticated author ID on success.
+ */
+function extrachill_community_authorize_post_creation( $input, $capability ) {
+	$user_id = extrachill_community_authorize_forum_action( $input, $capability, 0, true );
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	if ( isset( $input['user_id'] ) && (int) $input['user_id'] !== $user_id ) {
+		return new WP_Error( 'author_mismatch', 'The requested author does not match the authenticated user.' );
+	}
+
+	return $user_id;
+}
+
+/**
+ * Authorize a topic/reply update and any requested author reassignment.
+ *
+ * @param array   $input Ability input.
+ * @param WP_Post $post  Topic or reply post.
+ * @param string  $type  Either topic or reply.
+ * @return int|WP_Error Trusted actor ID on success.
+ */
+function extrachill_community_authorize_post_update( $input, $post, $type ) {
+	$edit_cap = 'topic' === $type ? 'edit_topic' : 'edit_reply';
+	$user_id  = extrachill_community_authorize_forum_action( $input, $edit_cap, (int) $post->ID, false, 'cannot_edit' );
+	if ( is_wp_error( $user_id ) ) {
+		return $user_id;
+	}
+
+	if ( ! isset( $input['user_id'] ) || (int) $input['user_id'] === (int) $post->post_author ) {
+		return $user_id;
+	}
+
+	$requested_user_id = (int) $input['user_id'];
+	if ( $requested_user_id <= 0 || ! get_userdata( $requested_user_id ) ) {
+		return new WP_Error( 'invalid_author', 'The requested author is not a valid user.' );
+	}
+
+	$edit_others_cap = 'topic' === $type ? 'edit_others_topics' : 'edit_others_replies';
+	return extrachill_community_authorize_forum_action( $input, $edit_others_cap, 0, false, 'cannot_change_author' );
 }
 
 /**
@@ -270,6 +341,11 @@ function extrachill_community_ability_update_topic( $input ) {
 		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
 	}
 
+	$actor_id = extrachill_community_authorize_post_update( $input, $post, 'topic' );
+	if ( is_wp_error( $actor_id ) ) {
+		return $actor_id;
+	}
+
 	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
 	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
 	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
@@ -291,14 +367,9 @@ function extrachill_community_ability_update_topic( $input ) {
 		$update['post_title'] = $title;
 	}
 
-	// Optional author override — permission_callback already enforced edit caps,
-	// but edit_others_topics is required to actually swap the author.
 	if ( isset( $input['user_id'] ) ) {
 		$requested_user_id = (int) $input['user_id'];
 		if ( $requested_user_id > 0 && $requested_user_id !== (int) $post->post_author ) {
-			if ( ! current_user_can( 'edit_others_topics' ) ) {
-				return new WP_Error( 'cannot_change_author', 'You cannot change the topic author.' );
-			}
 			$update['post_author'] = $requested_user_id;
 		}
 	}
@@ -352,6 +423,11 @@ function extrachill_community_ability_update_reply( $input ) {
 		return new WP_Error( 'not_a_reply', 'Post ID is not a valid reply.' );
 	}
 
+	$actor_id = extrachill_community_authorize_post_update( $input, $post, 'reply' );
+	if ( is_wp_error( $actor_id ) ) {
+		return $actor_id;
+	}
+
 	$raw_content = isset( $input['content'] ) ? (string) $input['content'] : '';
 	$format      = isset( $input['format'] ) ? (string) $input['format'] : 'html';
 	$content     = wp_kses_post( extrachill_community_maybe_convert_markdown( $raw_content, $format ) );
@@ -368,9 +444,6 @@ function extrachill_community_ability_update_reply( $input ) {
 	if ( isset( $input['user_id'] ) ) {
 		$requested_user_id = (int) $input['user_id'];
 		if ( $requested_user_id > 0 && $requested_user_id !== (int) $post->post_author ) {
-			if ( ! current_user_can( 'edit_others_replies' ) ) {
-				return new WP_Error( 'cannot_change_author', 'You cannot change the reply author.' );
-			}
 			$update['post_author'] = $requested_user_id;
 		}
 	}
