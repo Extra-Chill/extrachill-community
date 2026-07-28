@@ -4,10 +4,12 @@
 namespace AgentsAPI\AI {
 	class WP_Agent_Execution_Principal {
 		public $acting_user_id;
+		public $effective_agent_id;
 		public $capability_ceiling;
 
-		public function __construct( $acting_user_id, $capability_ceiling = null ) {
+		public function __construct( $acting_user_id, $capability_ceiling = null, $effective_agent_id = '__wordpress_user__' ) {
 			$this->acting_user_id    = $acting_user_id;
+			$this->effective_agent_id = $effective_agent_id;
 			$this->capability_ceiling = $capability_ceiling;
 		}
 	}
@@ -89,7 +91,8 @@ namespace {
 		return $value instanceof WP_Error;
 	}
 
-	function ec_get_blog_id() {
+	function ec_get_blog_id( $site = '' ) {
+		unset( $site );
 		return 2;
 	}
 

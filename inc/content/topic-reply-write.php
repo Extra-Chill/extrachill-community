@@ -194,6 +194,13 @@ function extrachill_community_ability_create_topic( $input ) {
 		return $user_id;
 	}
 
+	$voice_change = function_exists( 'extrachill_community_prepare_public_voice_change' )
+		? extrachill_community_prepare_public_voice_change( $input, $user_id, $user_id )
+		: null;
+	if ( is_wp_error( $voice_change ) ) {
+		return $voice_change;
+	}
+
 	if ( ! $forum_id ) {
 		return new WP_Error( 'missing_forum_id', 'A forum_id is required.' );
 	}
@@ -231,17 +238,24 @@ function extrachill_community_ability_create_topic( $input ) {
 	if ( ! $topic_id ) {
 		return new WP_Error( 'create_failed', 'Failed to create topic.' );
 	}
+	if ( function_exists( 'extrachill_community_persist_public_voice' ) ) {
+		extrachill_community_persist_public_voice( $topic_id, $voice_change );
+	}
 
 	// Fire bbp_new_topic so community hooks (cache, notifications, points, drafts) trigger.
 	do_action( 'bbp_new_topic', $topic_id, $forum_id, array(), $user_id );
 
-	return array(
+	$result = array(
 		'topic_id'  => (int) $topic_id,
 		'title'     => $title,
 		'url'       => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
 		'forum_id'  => $forum_id,
 		'author_id' => $user_id,
 	);
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$result['public_voice'] = extrachill_community_format_post_public_voice( $topic_id );
+	}
+	return $result;
 }
 
 /**
@@ -264,6 +278,13 @@ function extrachill_community_ability_create_reply( $input ) {
 
 	if ( is_wp_error( $user_id ) ) {
 		return $user_id;
+	}
+
+	$voice_change = function_exists( 'extrachill_community_prepare_public_voice_change' )
+		? extrachill_community_prepare_public_voice_change( $input, $user_id, $user_id )
+		: null;
+	if ( is_wp_error( $voice_change ) ) {
+		return $voice_change;
 	}
 
 	if ( ! $topic_id ) {
@@ -303,17 +324,24 @@ function extrachill_community_ability_create_reply( $input ) {
 	if ( ! $reply_id ) {
 		return new WP_Error( 'create_failed', 'Failed to create reply.' );
 	}
+	if ( function_exists( 'extrachill_community_persist_public_voice' ) ) {
+		extrachill_community_persist_public_voice( $reply_id, $voice_change );
+	}
 
 	// Fire bbp_new_reply so community hooks (cache, notifications, points, drafts) trigger.
 	do_action( 'bbp_new_reply', $reply_id, $topic_id, $forum_id, array(), $user_id, false, $reply_to );
 
-	return array(
+	$result = array(
 		'reply_id'  => (int) $reply_id,
 		'topic_id'  => $topic_id,
 		'forum_id'  => $forum_id,
 		'url'       => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $reply_id ) : get_permalink( $reply_id ),
 		'author_id' => $user_id,
 	);
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$result['public_voice'] = extrachill_community_format_post_public_voice( $reply_id );
+	}
+	return $result;
 }
 
 /**
@@ -374,6 +402,14 @@ function extrachill_community_ability_update_topic( $input ) {
 		}
 	}
 
+	$new_author_id = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
+	$voice_change  = function_exists( 'extrachill_community_prepare_public_voice_change' )
+		? extrachill_community_prepare_public_voice_change( $input, (int) $post->post_author, $actor_id, $topic_id, $new_author_id )
+		: null;
+	if ( is_wp_error( $voice_change ) ) {
+		return $voice_change;
+	}
+
 	$forum_id = function_exists( 'bbp_get_topic_forum_id' )
 		? (int) bbp_get_topic_forum_id( $topic_id )
 		: (int) $post->post_parent;
@@ -381,6 +417,9 @@ function extrachill_community_ability_update_topic( $input ) {
 	$result = wp_update_post( $update, true );
 	if ( is_wp_error( $result ) ) {
 		return $result;
+	}
+	if ( function_exists( 'extrachill_community_persist_public_voice' ) ) {
+		extrachill_community_persist_public_voice( $topic_id, $voice_change );
 	}
 
 	// Fire bbp_edit_topic so community cache invalidation, notifications, points
@@ -392,14 +431,18 @@ function extrachill_community_ability_update_topic( $input ) {
 
 	$fresh = get_post( $topic_id );
 
-	return array(
+	$result = array(
 		'id'         => (int) $topic_id,
-		'status'     => $fresh ? $fresh->post_status : $post->post_status,
-		'title'      => $fresh ? $fresh->post_title : $post->post_title,
-		'content'    => $fresh ? $fresh->post_content : $content,
+		'status'     => $fresh->post_status,
+		'title'      => $fresh->post_title,
+		'content'    => $fresh->post_content,
 		'permalink'  => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $topic_id ) : get_permalink( $topic_id ),
-		'updated_at' => $fresh ? mysql_to_rfc3339( $fresh->post_modified_gmt ) : mysql_to_rfc3339( gmdate( 'Y-m-d H:i:s' ) ),
+		'updated_at' => mysql_to_rfc3339( $fresh->post_modified_gmt ),
 	);
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$result['public_voice'] = extrachill_community_format_post_public_voice( $topic_id );
+	}
+	return $result;
 }
 
 /**
@@ -448,6 +491,14 @@ function extrachill_community_ability_update_reply( $input ) {
 		}
 	}
 
+	$new_author_id = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
+	$voice_change  = function_exists( 'extrachill_community_prepare_public_voice_change' )
+		? extrachill_community_prepare_public_voice_change( $input, (int) $post->post_author, $actor_id, $reply_id, $new_author_id )
+		: null;
+	if ( is_wp_error( $voice_change ) ) {
+		return $voice_change;
+	}
+
 	$topic_id = function_exists( 'bbp_get_reply_topic_id' )
 		? (int) bbp_get_reply_topic_id( $reply_id )
 		: (int) $post->post_parent;
@@ -459,6 +510,9 @@ function extrachill_community_ability_update_reply( $input ) {
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
+	if ( function_exists( 'extrachill_community_persist_public_voice' ) ) {
+		extrachill_community_persist_public_voice( $reply_id, $voice_change );
+	}
 
 	$author_id      = isset( $update['post_author'] ) ? (int) $update['post_author'] : (int) $post->post_author;
 	$anonymous_data = array();
@@ -468,11 +522,15 @@ function extrachill_community_ability_update_reply( $input ) {
 
 	$fresh = get_post( $reply_id );
 
-	return array(
+	$result = array(
 		'id'         => (int) $reply_id,
-		'status'     => $fresh ? $fresh->post_status : $post->post_status,
-		'content'    => $fresh ? $fresh->post_content : $content,
+		'status'     => $fresh->post_status,
+		'content'    => $fresh->post_content,
 		'permalink'  => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $reply_id ) : get_permalink( $reply_id ),
-		'updated_at' => $fresh ? mysql_to_rfc3339( $fresh->post_modified_gmt ) : mysql_to_rfc3339( gmdate( 'Y-m-d H:i:s' ) ),
+		'updated_at' => mysql_to_rfc3339( $fresh->post_modified_gmt ),
 	);
+	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
+		$result['public_voice'] = extrachill_community_format_post_public_voice( $reply_id );
+	}
+	return $result;
 }
