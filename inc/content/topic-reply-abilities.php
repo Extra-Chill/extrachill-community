@@ -176,7 +176,7 @@ function extrachill_community_register_topic_reply_abilities() {
 			'execute_callback'    => 'extrachill_community_ability_create_topic',
 			'permission_callback' => 'extrachill_community_ability_create_topic_permission',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
 					'idempotent'  => false,
@@ -232,7 +232,7 @@ function extrachill_community_register_topic_reply_abilities() {
 			'execute_callback'    => 'extrachill_community_ability_create_reply',
 			'permission_callback' => 'extrachill_community_ability_create_reply_permission',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
 					'idempotent'  => false,
