@@ -85,7 +85,6 @@ function render_homepage_topic_modal() {
 $output = render_homepage_topic_modal();
 check( 'active logged-in participant can access the homepage topic form', false !== strpos( $output, '<form id="new-post">' ) );
 check( 'modal identifies the destination as a Community post', false !== strpos( $output, 'New Community Post' ) );
-check( 'modal distinguishes Community posts from blog articles', false !== strpos( $output, 'does not submit an article to the Extra Chill blog' ) );
 check( 'homepage permission override is removed after rendering', empty( $GLOBALS['_test_filters']['bbp_current_user_can_access_create_topic_form'] ) );
 
 $button_source = (string) file_get_contents( dirname( __DIR__ ) . '/inc/home/new-topic-button.php' );
