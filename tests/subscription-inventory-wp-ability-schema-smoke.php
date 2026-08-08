@@ -80,6 +80,7 @@ $invalid_inputs   = array();
 $invalid_inputs[] = array( 'schema_version' => '2', 'identities' => $identities );
 $invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array() );
 $invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array_fill( 0, 101, $identities[0] ) );
+$invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array( $identities[0], $identities[0] ) );
 $invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array( array( 'entity_type' => 'artist', 'taxonomy' => 'venue', 'slug' => 'kid-lake' ) ) );
 $invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array( array( 'entity_type' => 'artist', 'taxonomy' => 'artist', 'slug' => 'Kid Lake' ) ) );
 $invalid_inputs[] = array( 'schema_version' => '1', 'identities' => array( $identities[0] ), 'extra' => true );

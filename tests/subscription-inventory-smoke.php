@@ -78,6 +78,7 @@ subscription_assert( false === $ability['input_schema']['additionalProperties'],
 subscription_assert( array( 'schema_version', 'identities' ) === $ability['input_schema']['required'], 'Input fields must be required.' );
 subscription_assert( 1 === $ability['input_schema']['properties']['identities']['minItems'], 'Input must reject empty batches.' );
 subscription_assert( 100 === $ability['input_schema']['properties']['identities']['maxItems'], 'Input must enforce the owner batch bound.' );
+subscription_assert( true === $ability['input_schema']['properties']['identities']['uniqueItems'], 'Input must reject duplicate stored identities.' );
 subscription_assert( 5 === count( $ability['input_schema']['properties']['identities']['items']['oneOf'] ), 'Every supported identity pair must be enumerated.' );
 subscription_assert( false === $ability['output_schema']['additionalProperties'], 'Output envelope must be exact.' );
 subscription_assert( 25 === count( $ability['output_schema']['properties']['entities']['items']['oneOf'] ), 'Every identity and failure status must have an exact output variant.' );
