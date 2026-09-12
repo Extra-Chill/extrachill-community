@@ -1,0 +1,52 @@
+name: Homeboy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: homeboy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: Extra-Chill/homeboy-action@aba14988e24c30c7e1c7ea956131f861e343ad2b
+        with:
+          extension: wordpress
+          commands: review lint,review test
+          scope: full
+          pr-comment: 'false'
+          auto-issue: 'false'
+
+  js:
+    runs-on: ubuntu-latest
+    env:
+      # The wordpress extension's full-suite test run only reaches
+      # `wp-scripts test-unit-js` (`test:js`) through changed-file scoping;
+      # a plain full-suite run never invokes it. Route it through the
+      # nodejs extension instead, targeting the declared test:js script
+      # directly (package.json's script name is `test:js`, not `test`).
+      HOMEBOY_NODE_TEST_COMMAND: npm run test:js
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: Extra-Chill/homeboy-action@aba14988e24c30c7e1c7ea956131f861e343ad2b
+        with:
+          extension: nodejs
+          commands: review test
+          node-version: '22'
+          scope: full
+          pr-comment: 'false'
+          auto-issue: 'false'
