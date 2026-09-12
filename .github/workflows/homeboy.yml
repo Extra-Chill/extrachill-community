@@ -24,7 +24,24 @@ jobs:
         with:
           extension: wordpress
           commands: review lint,review test
+          # This component has no composer.json of its own, so PHP version
+          # auto-detection has nothing to key off. Its validation-dependency
+          # graph transitively pulls in extrachill-api (via extrachill ->
+          # extrachill-api), which requires php>=8.4. Pin explicitly so
+          # setup-php provisions 8.4 for the whole job instead of falling
+          # back to the runner image's ambient PHP (8.3 as of this writing),
+          # which breaks that dependency's composer install.
+          php-version: '8.4'
+          # homeboy.json links both `wordpress` and `nodejs` extensions on
+          # this one component (PHP toolchain + JS toolchain). The action's
+          # `extension:` input only controls what gets installed in this
+          # job; it is not forwarded to the invoked `homeboy review ...`
+          # command. Force the explicit choice here rather than relying on
+          # undocumented default-extension-resolution order when a
+          # component has more than one linked extension.
+          args: '--extension wordpress'
           scope: full
+          differential-gating: 'true'
           pr-comment: 'false'
           auto-issue: 'false'
 
@@ -47,6 +64,16 @@ jobs:
           extension: nodejs
           commands: review test
           node-version: '22'
+          # See the `wordpress` job's comment: `extension: nodejs` above
+          # only controls which extension this job installs. The component
+          # has both `wordpress` and `nodejs` linked in homeboy.json, so the
+          # invoked `homeboy review test` needs its own explicit selector or
+          # it resolves to the component's other linked extension
+          # (wordpress) — which isn't even installed in this job — and
+          # fails with "Extension 'wordpress' failed to load: The extension
+          # is not installed."
+          args: '--extension nodejs'
           scope: full
+          differential-gating: 'true'
           pr-comment: 'false'
           auto-issue: 'false'

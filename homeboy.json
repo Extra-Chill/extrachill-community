@@ -13,6 +13,9 @@
           "extrachill"
         ]
       }
+    },
+    "nodejs": {
+      "settings": {}
     }
   },
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
