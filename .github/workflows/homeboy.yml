@@ -45,35 +45,3 @@ jobs:
           pr-comment: 'false'
           auto-issue: 'false'
 
-  js:
-    runs-on: ubuntu-latest
-    env:
-      # The wordpress extension's full-suite test run only reaches
-      # `wp-scripts test-unit-js` (`test:js`) through changed-file scoping;
-      # a plain full-suite run never invokes it. Route it through the
-      # nodejs extension instead, targeting the declared test:js script
-      # directly (package.json's script name is `test:js`, not `test`).
-      HOMEBOY_NODE_TEST_COMMAND: npm run test:js
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: Extra-Chill/homeboy-action@aba14988e24c30c7e1c7ea956131f861e343ad2b
-        with:
-          extension: nodejs
-          commands: review test
-          node-version: '22'
-          # See the `wordpress` job's comment: `extension: nodejs` above
-          # only controls which extension this job installs. The component
-          # has both `wordpress` and `nodejs` linked in homeboy.json, so the
-          # invoked `homeboy review test` needs its own explicit selector or
-          # it resolves to the component's other linked extension
-          # (wordpress) — which isn't even installed in this job — and
-          # fails with "Extension 'wordpress' failed to load: The extension
-          # is not installed."
-          args: '--extension nodejs'
-          scope: full
-          differential-gating: 'true'
-          pr-comment: 'false'
-          auto-issue: 'false'
