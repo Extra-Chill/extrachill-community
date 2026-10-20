@@ -137,6 +137,7 @@ function extrachill_community_block_banned_profiles() {
 		return;
 	}
 
+	// phpcs:ignore WordPress.WP.Capabilities.Unknown -- `moderate` is bbPress's forum moderator capability.
 	if ( current_user_can( 'moderate' ) ) {
 		return;
 	}
@@ -179,8 +180,8 @@ function extrachill_community_blocked_profile_robots( $robots ) {
 		return $robots;
 	}
 
-	$robots['noindex'] = true;
-	$robots['follow']  = false;
+	$robots['noindex']  = true;
+	$robots['follow']   = false;
 	$robots['nofollow'] = true;
 
 	return $robots;
