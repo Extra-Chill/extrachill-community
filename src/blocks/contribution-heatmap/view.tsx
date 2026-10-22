@@ -13,6 +13,7 @@
  */
 import { useState, useCallback, useMemo, createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { addQueryArgs } from '@wordpress/url';
 
 /**
  * External dependencies
@@ -327,9 +328,11 @@ function Heatmap( { config }: { config: HeatmapConfig } ) {
 			setLoading( true );
 			// The public run route checks the ability permission, not catalog read access.
 			apiFetch< CalendarPayload >( {
-				path: `/wp-abilities/v1/abilities/extrachill/get-user-contribution-calendar/run?input=${ encodeURIComponent(
-					JSON.stringify( { user_id: config.userId, year } )
-				) }`,
+				// Core's run controller reads GET input as bracketed query args.
+				path: addQueryArgs(
+					'/wp-abilities/v1/abilities/extrachill/get-user-contribution-calendar/run',
+					{ input: { user_id: config.userId, year } }
+				),
 				method: 'GET',
 			} )
 				.then( ( response ) => {

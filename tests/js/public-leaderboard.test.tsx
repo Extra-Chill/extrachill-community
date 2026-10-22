@@ -28,7 +28,11 @@ test( 'anonymous initial page needs no discovery; pagination calls only public r
 	const request = ( apiFetch as jest.Mock ).mock.calls[ 0 ][ 0 ];
 	expect( request.method ).toBe( 'GET' );
 	expect( request.path.split( '?' )[ 0 ] ).toBe( '/wp-abilities/v1/abilities/extrachill/users-leaderboard/run' );
-	expect( JSON.parse( decodeURIComponent( request.path.split( 'input=' )[ 1 ] ) ) ).toEqual( { page: 2, per_page: 25 } );
+	// Core's run controller only accepts bracketed query input; a JSON string 400s.
+	const query = new URLSearchParams( request.path.split( '?' )[ 1 ] );
+	expect( query.get( 'input[page]' ) ).toBe( '2' );
+	expect( query.get( 'input[per_page]' ) ).toBe( '25' );
+	expect( query.has( 'input' ) ).toBe( false );
 	await act( async () => root.unmount() );
 	container.remove();
 } );

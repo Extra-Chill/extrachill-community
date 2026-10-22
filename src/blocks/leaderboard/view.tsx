@@ -8,6 +8,7 @@ import {
 	createRoot,
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { addQueryArgs } from '@wordpress/url';
 
 /**
  * External dependencies
@@ -129,9 +130,11 @@ export function Leaderboard( { perPage, spriteUrl, initial }: LeaderboardProps )
 			setError( null );
 			// Public read-only run endpoint: no authenticated catalog discovery.
 			apiFetch< LeaderboardResponse >( {
-				path: `/wp-abilities/v1/abilities/extrachill/users-leaderboard/run?input=${ encodeURIComponent(
-					JSON.stringify( { page: targetPage, per_page: perPage } )
-				) }`,
+				// Core's run controller reads GET input as bracketed query args.
+				path: addQueryArgs(
+					'/wp-abilities/v1/abilities/extrachill/users-leaderboard/run',
+					{ input: { page: targetPage, per_page: perPage } }
+				),
 				method: 'GET',
 			} )
 				.then( ( response ) => {
