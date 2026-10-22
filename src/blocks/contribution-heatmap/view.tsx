@@ -17,8 +17,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * External dependencies
  */
-import { WPNativeClient } from 'wp-native-client';
-import { WpApiFetchTransport } from 'wp-native-client/wordpress';
+
 
 /**
  * WordPress dependencies
@@ -29,10 +28,6 @@ import { __, sprintf, _n } from '@wordpress/i18n';
  * Internal dependencies
  */
 import './style.css';
-
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
-	validateAbilityNames: false,
-} );
 
 interface CalendarPayload {
 	user_id: number;
@@ -330,14 +325,13 @@ function Heatmap( { config }: { config: HeatmapConfig } ) {
 				return;
 			}
 			setLoading( true );
-			client
-				.execute< CalendarPayload >(
-					'extrachill/get-user-contribution-calendar',
-					{
-						user_id: config.userId,
-						year,
-					}
-				)
+			// The public run route checks the ability permission, not catalog read access.
+			apiFetch< CalendarPayload >( {
+				path: `/wp-abilities/v1/abilities/extrachill/get-user-contribution-calendar/run?input=${ encodeURIComponent(
+					JSON.stringify( { user_id: config.userId, year } )
+				) }`,
+				method: 'GET',
+			} )
 				.then( ( response ) => {
 					setCache( ( prev ) => ( { ...prev, [ year ]: response } ) );
 					setLoading( false );

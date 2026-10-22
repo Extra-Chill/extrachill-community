@@ -12,8 +12,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * External dependencies
  */
-import { WPNativeClient } from 'wp-native-client';
-import { WpApiFetchTransport } from 'wp-native-client/wordpress';
+
 import {
 	ActionRow,
 	BlockShell,
@@ -28,10 +27,6 @@ import { cssVar, colors, fontSize } from '@extrachill/tokens';
  * Internal dependencies
  */
 import type { LeaderboardResponse, LeaderboardEntry } from '../../types/users';
-
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
-	validateAbilityNames: false,
-} );
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -119,23 +114,26 @@ function formatDate( iso: string ): string {
 interface LeaderboardProps {
 	perPage: number;
 	spriteUrl: string;
+	initial: LeaderboardResponse | null;
 }
 
-function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
+export function Leaderboard( { perPage, spriteUrl, initial }: LeaderboardProps ) {
 	const [ page, setPage ] = useState( 1 );
-	const [ data, setData ] = useState< LeaderboardResponse | null >( null );
-	const [ loading, setLoading ] = useState( true );
+	const [ data, setData ] = useState< LeaderboardResponse | null >( initial );
+	const [ loading, setLoading ] = useState( ! initial );
 	const [ error, setError ] = useState< string | null >( null );
 
 	const load = useCallback(
 		( targetPage: number ) => {
 			setLoading( true );
 			setError( null );
-			client
-				.execute< LeaderboardResponse >(
-					'extrachill/users-leaderboard',
-					{ page: targetPage, per_page: perPage }
-				)
+			// Public read-only run endpoint: no authenticated catalog discovery.
+			apiFetch< LeaderboardResponse >( {
+				path: `/wp-abilities/v1/abilities/extrachill/users-leaderboard/run?input=${ encodeURIComponent(
+					JSON.stringify( { page: targetPage, per_page: perPage } )
+				) }`,
+				method: 'GET',
+			} )
 				.then( ( response ) => {
 					setData( response );
 					setLoading( false );
@@ -149,8 +147,13 @@ function Leaderboard( { perPage, spriteUrl }: LeaderboardProps ) {
 	);
 
 	useEffect( () => {
+		if ( page === 1 && initial ) {
+			setData( initial );
+			setLoading( false );
+			return;
+		}
 		load( page );
-	}, [ page, load ] );
+	}, [ page, load, initial ] );
 
 	if ( loading ) {
 		return (
@@ -266,9 +269,15 @@ function init(): void {
 			);
 			const spriteUrl = container.dataset.spriteUrl || '';
 
+			let initial: LeaderboardResponse | null = null;
+			try {
+				initial = JSON.parse( container.dataset.initial || 'null' );
+			} catch {
+				// Fall back to the public run endpoint.
+			}
 			const root = createRoot( container );
 			root.render(
-				<Leaderboard perPage={ perPage } spriteUrl={ spriteUrl } />
+				<Leaderboard perPage={ perPage } spriteUrl={ spriteUrl } initial={ initial } />
 			);
 		} );
 }
